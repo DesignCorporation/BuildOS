@@ -1,0 +1,39 @@
+[Unit]
+Description=BuildOS - Construction Management SaaS Platform
+Documentation=https://github.com/DesignCorporation/BuildOS
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/buildos
+
+# Load environment variables
+EnvironmentFile=/opt/buildos/.env
+
+# Start command
+ExecStart=/usr/bin/docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+# Stop command
+ExecStop=/usr/bin/docker compose -f docker-compose.prod.yml down
+
+# Reload command (graceful restart)
+ExecReload=/usr/bin/docker compose -f docker-compose.prod.yml up -d --force-recreate --no-deps web
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Security
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=buildos
+
+[Install]
+WantedBy=multi-user.target
