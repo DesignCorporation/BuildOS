@@ -1,7 +1,5 @@
-// BuildOS - Services Package
-// Placeholder - will be implemented in future issues
+// BuildOS - Services Index
+// Central export for all services
 
-export const placeholder = {
-  package: "@buildos/services",
-  status: "initialized",
-} as const;
+export * from "./estimate.service";
+export * from "./project.service";

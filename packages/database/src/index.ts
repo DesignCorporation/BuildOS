@@ -17,3 +17,6 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 // Re-export Prisma types
 export * from "./generated/client";
+
+// Re-export Repositories
+export * from "./repositories";
