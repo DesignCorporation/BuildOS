@@ -9,8 +9,17 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 COPY turbo.json ./
+
+# Copy all workspace package.json files
 COPY apps/web/package.json ./apps/web/
-COPY packages/*/package.json ./packages/*/
+COPY packages/auth/package.json ./packages/auth/
+COPY packages/config/package.json ./packages/config/
+COPY packages/database/package.json ./packages/database/
+COPY packages/estimate-engine/package.json ./packages/estimate-engine/
+COPY packages/i18n/package.json ./packages/i18n/
+COPY packages/rbac/package.json ./packages/rbac/
+COPY packages/services/package.json ./packages/services/
+COPY packages/ui/package.json ./packages/ui/
 
 # Install dependencies
 RUN npm ci
