@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@buildos/database": ["../../packages/database/src"],
+      "@buildos/services": ["../../packages/services/src"],
+      "@buildos/auth": ["../../packages/auth/src"],
+      "@buildos/rbac": ["../../packages/rbac/src"],
+      "@buildos/estimate-engine": ["../../packages/estimate-engine/src"],
+      "@buildos/ui": ["../../packages/ui/src"],
+      "@buildos/i18n": ["../../packages/i18n/src"],
+      "@buildos/config": ["../../packages/config/src"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

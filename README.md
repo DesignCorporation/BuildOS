@@ -24,9 +24,9 @@ BuildOS is a comprehensive management system for construction companies, providi
 
 ## 📚 Documentation
 
-- **[Architecture Decision Records (ADR)](./Docs/adr/ADR_PACK_V1.md)** - Key architectural decisions
-- **[Deployment Guide](./docs/deploy.md)** - Complete deployment instructions
-- **[Product Requirements](./Docs/)** - Detailed product documentation
+- **[Architecture Decision Records (ADR)](./docs/architecture/adr/ADR_PACK_V1.md)** - Key architectural decisions
+- **[Deployment Guide](./docs/development/deploy.md)** - Complete deployment instructions
+- **[Product Requirements](./docs/product/)** - Detailed product documentation
 
 ---
 
@@ -46,6 +46,7 @@ BuildOS is a comprehensive management system for construction companies, providi
 - **Storage:** MinIO (S3-compatible)
 
 ### Infrastructure
+- **Monorepo:** Turborepo + npm workspaces
 - **Deployment:** Self-hosted (Docker + Nginx)
 - **CI/CD:** GitHub Actions + GHCR
 - **SSL:** Let's Encrypt
@@ -64,34 +65,18 @@ npm install
 # Setup database
 docker compose -f docker-compose.dev.yml up -d postgres redis minio
 
-# Run migrations
+# Run migrations (after Issue #2)
 npx prisma migrate dev
 
 # Start dev server
 npm run dev
 ```
 
+Visit `http://localhost:3000`
+
 ### Production
 
-See **[Deployment Guide](./docs/deploy.md)** for complete instructions.
-
-```bash
-# Clone to server
-git clone git@github.com:DesignCorporation/BuildOS.git /opt/buildos
-
-# Configure environment
-cp .env.example .env
-nano .env
-
-# Setup SSL
-cd infra/nginx && sudo bash setup-ssl.sh
-
-# Install systemd unit
-cd infra/systemd && sudo bash install.sh
-
-# Start services
-sudo systemctl start buildos
-```
+See **[Deployment Guide](./docs/development/deploy.md)** for complete instructions.
 
 ---
 
@@ -100,14 +85,14 @@ sudo systemctl start buildos
 ```
 BuildOS/
 ├── apps/
-│   └── web/                 # Main Next.js application
+│   └── web/                 # Next.js 15 application
 ├── packages/
 │   ├── database/           # Prisma schema & migrations
 │   ├── services/           # Business logic
 │   ├── auth/               # Authentication
 │   ├── rbac/               # Role-based access control
 │   ├── estimate-engine/   # Core calculation engine
-│   ├── ui/                 # Shared UI components
+│   ├── ui/                 # Shared UI components (shadcn/ui)
 │   ├── i18n/               # Internationalization
 │   └── config/             # Shared configuration
 ├── infra/
@@ -115,11 +100,31 @@ BuildOS/
 │   ├── nginx/              # Nginx vhosts & SSL
 │   └── systemd/            # systemd units
 ├── docs/                   # Documentation
-├── Docs/                   # Product documentation
-│   └── adr/                # Architecture Decision Records
+│   ├── architecture/       # ADR, tech stack, data model
+│   ├── product/            # PRD, RBAC, formulas
+│   └── development/        # Deploy guide
 ├── .github/
 │   └── workflows/          # CI/CD pipelines
-└── README.md
+├── turbo.json              # Turborepo configuration
+└── package.json            # Root package with workspaces
+```
+
+---
+
+## 🔧 Development Commands
+
+```bash
+# Development
+npm run dev          # Start all apps in dev mode
+npm run build        # Build all packages and apps
+npm run lint         # Lint all packages
+npm run typecheck    # Type check all packages
+npm run test         # Run all tests
+npm run clean        # Clean all build artifacts
+
+# Package-specific
+npm run dev -w @buildos/web        # Dev только web app
+npm run build -w @buildos/web      # Build только web app
 ```
 
 ---
@@ -140,13 +145,10 @@ See `.env.example` for all required environment variables.
 
 ```bash
 # Unit tests
-npm run test
+npm run test:unit
 
 # Integration tests
 npm run test:integration
-
-# E2E tests
-npm run test:e2e
 
 # Type checking
 npm run typecheck
@@ -157,29 +159,30 @@ npm run lint
 
 ---
 
-## 📋 MVP Roadmap
+## 📋 Development Status
 
-### MVP 1.0 (2-3 weeks)
-- ✅ Auth + Multi-tenancy + RBAC
-- ✅ Projects + Rooms
-- ✅ Estimate Engine
-- ✅ PDF export
-- ✅ Client view (estimates)
+### ✅ Completed
+- Infrastructure (Docker, Nginx, SSL, systemd)
+- CI/CD pipeline (GitHub Actions + GHCR)
+- Turborepo monorepo setup
+- Next.js 15 application scaffold
 
-### MVP 1.1 (+1 week)
-- ⏳ Stages workflow
-- ⏳ Photos + timeline
-- ⏳ Client view (estimates + photos)
+### 🚧 In Progress
+- **Issue #2:** Prisma schema v1
+- **Issue #3:** Testing infrastructure
 
-### MVP 1.2 (+1 week)
-- ⏳ QA Checklists
-- ⏳ Client view (+ QA status)
+### ⏳ Next Steps
+- Issue #4: Authentication
+- Issue #5: Multi-tenancy
+- Issue #6: RBAC
+
+**Tracking Issue:** https://github.com/DesignCorporation/BuildOS/issues/14
 
 ---
 
 ## 🤝 Contributing
 
-1. Create feature branch from `develop`
+1. Create feature branch from `main`
 2. Make changes following ADR guidelines
 3. Write tests
 4. Submit PR with description
