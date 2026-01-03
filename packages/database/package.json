@@ -5,13 +5,28 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf .turbo node_modules"
+    "clean": "rm -rf .turbo node_modules src/generated"
   },
   "dependencies": {
-    "@buildos/config": "*"
+    "@buildos/config": "*",
+    "@prisma/client": "^6.2.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "@types/node": "^22.10.5",
+    "@vitest/coverage-v8": "^2.1.8",
+    "prisma": "^6.2.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   }
 }

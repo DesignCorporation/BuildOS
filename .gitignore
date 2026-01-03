@@ -52,6 +52,7 @@ backups/
 
 # Prisma
 prisma/migrations/migration_lock.toml
+**/src/generated/
 
 # OS
 Thumbs.db
