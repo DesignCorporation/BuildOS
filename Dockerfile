@@ -32,6 +32,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Generate Prisma Client
+RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
+
 # Build application
 ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
@@ -51,6 +54,7 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder /app/packages/database/src/generated ./packages/database/src/generated
 
 USER nextjs
 
