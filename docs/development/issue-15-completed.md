@@ -168,12 +168,15 @@
 
 ---
 
-## Следующие шаги
+## Следующие шаги (Production-Grade)
 
-1. **Запустить Prisma migration:**
+### Development (локально)
+
+1. **Создать и применить Prisma migration:**
    ```bash
    cd packages/database
    npx prisma migrate dev --name add_pdf_fields_to_estimate
+   npx prisma generate
    ```
 
 2. **Установить зависимости:**
@@ -181,22 +184,57 @@
    npm install
    ```
 
-3. **Запустить PDF Worker:**
+3. **Запустить dev окружение через Docker Compose:**
    ```bash
-   node apps/web/lib/workers/pdf-worker.ts
+   # Запустить всё (postgres, redis, minio, web, worker-pdf)
+   docker compose -f docker-compose.dev.yml up -d
+
+   # Проверить логи worker
+   docker compose -f docker-compose.dev.yml logs -f worker-pdf
    ```
 
-4. **Настроить Redis:**
-   - Для BullMQ нужен запущенный Redis
-   - Dev: `docker run -d -p 6379:6379 redis:7`
-   - Prod: уже есть в docker-compose.prod.yml
-
-5. **Тестирование:**
+4. **Тестирование:**
    - Создать проект
    - Создать смету через `/projects/[id]/estimates/new`
    - Отправить клиенту
    - Открыть Client View: `/estimate/[estimateId]`
-   - Проверить что cost/margin НЕ видны
+   - **Проверить Network tab:** JSON не должен содержать `unitCost`, `totalCost`, `margin`, `marginPercent`
+
+### Production (сервер)
+
+1. **Применить миграции (БЕЗ migrate dev!):**
+   ```bash
+   # В CI/CD или вручную на сервере
+   cd packages/database
+   npx prisma migrate deploy
+   npx prisma generate
+   ```
+
+2. **Запустить production окружение:**
+   ```bash
+   # Убедиться что .env файл настроен
+   # Запустить весь стек (включая worker-pdf)
+   docker compose -f docker-compose.prod.yml up -d
+
+   # Проверить что worker запустился
+   docker compose -f docker-compose.prod.yml ps
+   docker compose -f docker-compose.prod.yml logs worker-pdf
+   ```
+
+3. **Проверить healthchecks:**
+   ```bash
+   docker compose -f docker-compose.prod.yml ps
+   # Все сервисы должны быть "healthy"
+   ```
+
+### Контрольные проверки
+
+- [ ] **DB migrations applied:** `prisma migrate deploy` выполнен без ошибок
+- [ ] **Redis доступен:** `docker exec buildos-web-dev redis-cli -h redis ping` → PONG
+- [ ] **Worker обрабатывает jobs:** В логах `docker logs buildos-worker-pdf` видны "[PDF Worker] Processing job..."
+- [ ] **PDF генерируется:** `pdfUrl` и `pdfGeneratedAt` сохраняются в БД
+- [ ] **Client view безопасен:** Network tab не показывает cost/margin поля
+- [ ] **PDF доступен для скачивания:** `/api/pdfs/estimate-XXX.pdf` возвращает PDF файл
 
 ---
 

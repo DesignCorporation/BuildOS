@@ -21,7 +21,18 @@ export default async function ClientEstimatePage({ params }: PageProps) {
       },
       deletedAt: null,
     },
-    include: {
+    select: {
+      // Estimate fields - CLIENT SAFE (no cost/margin!)
+      id: true,
+      version: true,
+      status: true,
+      createdAt: true,
+      pdfUrl: true,
+      pdfGeneratedAt: true,
+      totalClient: true, // ✅ Client sees this
+      // ❌ NO: totalCost, margin, marginPercent
+
+      // Related data
       items: {
         where: {
           // Items don't have deletedAt, but include for consistency

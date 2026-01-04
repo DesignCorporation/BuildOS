@@ -64,10 +64,13 @@ services:
       NODE_ENV: development
       DATABASE_URL: postgresql://buildos:buildos_dev_password@postgres:5432/buildos_dev
       REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
       MINIO_ACCESS_KEY: buildos
       MINIO_SECRET_KEY: buildos_minio_dev
+      PDF_STORAGE_DIR: /tmp/buildos-pdfs
     ports:
       - "3000:3000"
     volumes:
@@ -75,6 +78,7 @@ services:
       - ./packages:/app/packages
       - /app/node_modules
       - /app/apps/web/node_modules
+      - pdf_storage:/tmp/buildos-pdfs
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,7 +87,40 @@ services:
       minio:
         condition: service_healthy
 
+  # PDF Worker - processes PDF generation jobs from BullMQ
+  worker-pdf:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: buildos-worker-pdf-dev
+    restart: unless-stopped
+    command: node apps/web/lib/workers/pdf-worker.ts
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://buildos:buildos_dev_password@postgres:5432/buildos_dev
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PDF_STORAGE_DIR: /tmp/buildos-pdfs
+    volumes:
+      - ./apps:/app/apps
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - pdf_storage:/tmp/buildos-pdfs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "pdf-worker"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+  pdf_storage:

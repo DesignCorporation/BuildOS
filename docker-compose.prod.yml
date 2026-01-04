@@ -62,14 +62,20 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: https://buildos.designcorp.eu
+      PDF_STORAGE_DIR: /app/storage/pdfs
     ports:
       - "127.0.0.1:3000:3000"
+    volumes:
+      - pdf_storage:/app/storage/pdfs
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,10 +92,41 @@ services:
       retries: 3
       start_period: 40s
 
+  # PDF Worker - processes PDF generation jobs from BullMQ
+  worker-pdf:
+    image: ghcr.io/designcorporation/buildos:${IMAGE_TAG:-latest}
+    container_name: buildos-worker-pdf
+    restart: always
+    command: node apps/web/lib/workers/pdf-worker.js
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      PDF_STORAGE_DIR: /app/storage/pdfs
+    volumes:
+      - pdf_storage:/app/storage/pdfs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - buildos-network
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "pdf-worker"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+  pdf_storage:
 
 networks:
   buildos-network:
