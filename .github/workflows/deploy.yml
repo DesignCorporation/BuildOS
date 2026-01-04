@@ -165,6 +165,7 @@ jobs:
           cd ${{ secrets.PROD_PATH }}
 
           # Write env file for docker compose
+          tmp_env=$(mktemp)
           printf '%s\n' \
             "POSTGRES_USER=${POSTGRES_USER}" \
             "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
@@ -173,7 +174,9 @@ jobs:
             "MINIO_ROOT_USER=${MINIO_ROOT_USER}" \
             "MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}" \
             "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" \
-            > .env
+            > "$tmp_env"
+          sudo mv "$tmp_env" .env
+          sudo chown ${PROD_USER}:${PROD_USER} .env
 
           # Pull latest code
           git pull origin main
