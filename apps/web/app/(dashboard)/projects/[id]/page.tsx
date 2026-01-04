@@ -35,9 +35,9 @@ export default async function ProjectPage({ params }: PageProps) {
     <div className="container mx-auto py-8">
       {/* Breadcrumbs */}
       <div className="text-sm text-gray-600 mb-4">
-        <a href="/projects" className="hover:text-blue-600">
+        <Link href="/projects" className="hover:text-blue-600">
           Projects
-        </a>
+        </Link>
         {" > "}
         <span className="text-gray-900">{project.name}</span>
       </div>

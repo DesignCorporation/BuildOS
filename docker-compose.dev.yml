@@ -94,7 +94,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: buildos-worker-pdf-dev
     restart: unless-stopped
-    command: node apps/web/lib/workers/pdf-worker.ts
+    command: node apps/web/lib/workers/pdf-worker.tsx
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://buildos:buildos_dev_password@postgres:5432/buildos_dev
