@@ -6,6 +6,7 @@
 import { EstimateService } from "@buildos/services";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { addPdfGenerationJob } from "@/lib/queue";
 
 // ============================================================================
 // MOCK AUTH - Replace with real NextAuth session in Issue #4 (Authentication)
@@ -332,6 +333,41 @@ export async function createNewVersionAction(estimateId: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to create new version",
+    };
+  }
+}
+
+/**
+ * Generate PDF for estimate
+ * Adds job to BullMQ queue for async processing
+ */
+export async function generatePdfAction(estimateId: string) {
+  try {
+    // Get context
+    const context = await getCurrentContext();
+
+    // Add PDF generation job to queue
+    const job = await addPdfGenerationJob({
+      estimateId,
+      tenantId: context.tenantId,
+      userId: context.userId,
+    });
+
+    console.log(`PDF generation job queued: ${job.id}`);
+
+    // Revalidate
+    revalidatePath(`/estimates/${estimateId}`);
+
+    return {
+      success: true,
+      jobId: job.id,
+      message: "PDF generation started. It will be ready in a few moments.",
+    };
+  } catch (error) {
+    console.error("generatePdfAction error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to generate PDF",
     };
   }
 }

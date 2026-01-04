@@ -238,6 +238,10 @@ model Estimate {
   margin        Decimal @db.Decimal(12, 2) // totalClient - totalCost (MATERIALIZED!)
   marginPercent Decimal @db.Decimal(5, 2) // (margin / totalCost) * 100
 
+  // PDF Generation (Issue #15)
+  pdfUrl         String?
+  pdfGeneratedAt DateTime?
+
   notes     String?   @db.Text
   tags      String[]  @default([])
   createdAt DateTime  @default(now())
