@@ -41,7 +41,7 @@ jobs:
 
       - name: Generate Prisma Client
         if: steps.check-package.outputs.exists == 'true'
-        run: npx prisma generate
+        run: npx prisma generate --schema=packages/database/prisma/schema.prisma
 
       - name: Lint
         if: steps.check-package.outputs.exists == 'true'
