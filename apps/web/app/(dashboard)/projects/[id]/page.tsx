@@ -3,6 +3,7 @@
 
 import { getProjectByIdAction } from "@/app/actions/projects";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { ProjectTabs } from "./project-tabs";
 
 interface PageProps {
