@@ -145,7 +145,7 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {projects.map((project) => (
+              {projects.map((project: any) => (
                 <tr key={project.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <Link

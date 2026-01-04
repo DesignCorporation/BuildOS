@@ -2,6 +2,7 @@
 // Prisma Client Singleton
 
 import { PrismaClient } from "./generated/client";
+import type { Decimal } from "@prisma/client/runtime/library";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -17,6 +18,7 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 // Re-export Prisma types
 export * from "./generated/client";
+export { Decimal };
 
 // Re-export Repositories
 export * from "./repositories";

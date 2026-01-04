@@ -30,7 +30,7 @@ export function ProjectForm() {
     try {
       const result = await createProjectAction(formData);
 
-      if (result.success) {
+      if (result.success && result.data) {
         // Redirect to project page
         router.push(`/projects/${result.data.id}`);
       } else {

@@ -128,6 +128,11 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
       }
 
       // Then send to client
+      if (!createResult.data) {
+        setError("Failed to create estimate: no data returned");
+        return;
+      }
+
       const sendResult = await sendEstimateAction(createResult.data.id);
 
       if (sendResult.success) {

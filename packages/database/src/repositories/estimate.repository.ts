@@ -2,7 +2,8 @@
 // Handles all database operations for Estimates
 // CRITICAL: Manages versioning and cost visibility (RBAC)
 
-import { Estimate, EstimateItem, Prisma, Decimal } from "../generated/client";
+import { Estimate, EstimateItem, Prisma } from "../generated/client";
+import type { Decimal } from "@prisma/client/runtime/library";
 import { BaseRepository } from "./base.repository";
 import { PaginationParams, PaginationResult, SoftDeleteFilter } from "./types";
 
@@ -33,7 +34,7 @@ export interface UpdateEstimateInput {
 export interface CreateEstimateItemInput {
   type: string; // "work", "material", "subcontractor"
   name: string;
-  description?: string;
+  description?: string | null;
   unit: string;
   quantity: number | Decimal;
   unitCost: number | Decimal;
@@ -42,8 +43,8 @@ export interface CreateEstimateItemInput {
   totalClient: number | Decimal;
   margin: number | Decimal;
   marginPercent: number | Decimal;
-  materialCatalogId?: string;
-  workTypeId?: string;
+  materialCatalogId?: string | null;
+  workTypeId?: string | null;
   order?: number;
 }
 

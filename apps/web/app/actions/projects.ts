@@ -80,7 +80,7 @@ export async function getProjectsAction(filters?: {
 
     return {
       success: true,
-      data: result.items,
+      data: result.data,
       pagination: {
         total: result.total,
         page: result.page,
