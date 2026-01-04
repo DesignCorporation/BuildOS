@@ -32,6 +32,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Ensure public dir exists even if repo doesn't track it
+RUN mkdir -p /app/apps/web/public
+
 # Generate Prisma Client
 RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 
