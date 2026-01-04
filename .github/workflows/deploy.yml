@@ -147,7 +147,7 @@ jobs:
           PROD_HOST: ${{ secrets.PROD_HOST }}
           PROD_USER: ${{ secrets.PROD_USER }}
           PROD_PATH: ${{ secrets.PROD_PATH }}
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: ${{ github.ref_name }}
         run: |
           ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST << 'EOF'
             set -e
@@ -161,7 +161,7 @@ jobs:
             git pull origin main
 
             # Set image tag
-            export IMAGE_TAG=${{ github.sha }}
+            export IMAGE_TAG=${{ github.ref_name }}
 
             # Login to GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
