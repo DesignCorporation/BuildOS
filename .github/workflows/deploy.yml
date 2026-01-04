@@ -157,49 +157,49 @@ jobs:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
         run: |
           ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST << EOF
-            set -e
+          set -e
 
-            echo "🚀 Starting deployment..."
+          echo "🚀 Starting deployment..."
 
-            # Navigate to project directory
-            cd ${{ secrets.PROD_PATH }}
+          # Navigate to project directory
+          cd ${{ secrets.PROD_PATH }}
 
-            # Write env file for docker compose
-            cat > .env << 'ENVEOF'
-            POSTGRES_USER=${POSTGRES_USER}
-            POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-            POSTGRES_DB=${POSTGRES_DB}
-            REDIS_PASSWORD=${REDIS_PASSWORD}
-            MINIO_ROOT_USER=${MINIO_ROOT_USER}
-            MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-            NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-            ENVEOF
+          # Write env file for docker compose
+          printf '%s\n' \
+            "POSTGRES_USER=${POSTGRES_USER}" \
+            "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
+            "POSTGRES_DB=${POSTGRES_DB}" \
+            "REDIS_PASSWORD=${REDIS_PASSWORD}" \
+            "MINIO_ROOT_USER=${MINIO_ROOT_USER}" \
+            "MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}" \
+            "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" \
+            > .env
 
-            # Pull latest code
-            git pull origin main
+          # Pull latest code
+          git pull origin main
 
-            # Set image tag
-            export IMAGE_TAG=${{ github.ref_name }}
+          # Set image tag
+          export IMAGE_TAG=${{ github.ref_name }}
 
-            # Login to GHCR
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          # Login to GHCR
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # Pull new image
-            docker compose -f docker-compose.prod.yml pull web
+          # Pull new image
+          docker compose -f docker-compose.prod.yml pull web
 
-            # Run database migrations
-            docker compose -f docker-compose.prod.yml run --rm web npx prisma migrate deploy
+          # Run database migrations
+          docker compose -f docker-compose.prod.yml run --rm web npx prisma migrate deploy
 
-            # Restart services (zero-downtime)
-            docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate web
+          # Restart services (zero-downtime)
+          docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate web
 
-            # Cleanup old images
-            docker image prune -f
+          # Cleanup old images
+          docker image prune -f
 
-            echo "✅ Deployment complete!"
-            echo "🔍 Checking health..."
-            sleep 10
-            curl -f https://buildos.designcorp.eu/api/health || echo "⚠️  Health check failed"
+          echo "✅ Deployment complete!"
+          echo "🔍 Checking health..."
+          sleep 10
+          curl -f https://buildos.designcorp.eu/api/health || echo "⚠️  Health check failed"
           EOF
 
       - name: Cleanup SSH
