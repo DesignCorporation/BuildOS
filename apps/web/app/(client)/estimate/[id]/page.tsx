@@ -73,8 +73,16 @@ export default async function ClientEstimatePage({ params }: PageProps) {
   };
 
   // Format currency
-  const formatCurrency = (amount: number | string) => {
-    const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  const formatCurrency = (amount: number | string | { toNumber(): number }) => {
+    let num: number;
+    if (typeof amount === "string") {
+      num = parseFloat(amount);
+    } else if (typeof amount === "number") {
+      num = amount;
+    } else {
+      // Prisma Decimal type
+      num = amount.toNumber();
+    }
     return `${num.toFixed(2)} PLN`;
   };
 
