@@ -58,6 +58,7 @@ COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /app/packages/database/src/generated ./packages/database/src/generated
+COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
 
 USER nextjs
 

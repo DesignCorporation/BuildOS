@@ -189,7 +189,7 @@ jobs:
           docker compose --env-file "$env_file" -f docker-compose.prod.yml pull web
 
           # Run database migrations
-          docker compose --env-file "$env_file" -f docker-compose.prod.yml run --rm web npx prisma migrate deploy
+          docker compose --env-file "$env_file" -f docker-compose.prod.yml run --rm web npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma
 
           # Restart services (zero-downtime)
           docker compose --env-file "$env_file" -f docker-compose.prod.yml up -d --no-deps --force-recreate web
