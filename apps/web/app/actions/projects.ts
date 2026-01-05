@@ -229,3 +229,29 @@ export async function updateProjectStatusAction(id: string, status: string) {
     };
   }
 }
+
+/**
+ * Restore archived project
+ */
+export async function restoreProjectAction(id: string) {
+  try {
+    const context = await getCurrentContext();
+    const service = new ProjectService(context);
+
+    const project = await service.restoreProject(id);
+
+    revalidatePath("/projects");
+    revalidatePath(`/projects/${id}`);
+
+    return {
+      success: true,
+      data: project,
+    };
+  } catch (error) {
+    console.error("restoreProjectAction error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to restore project",
+    };
+  }
+}

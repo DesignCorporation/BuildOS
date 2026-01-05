@@ -5,6 +5,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ProjectEditModal } from "./project-edit-modal";
+import {
+  archiveProjectAction,
+  restoreProjectAction,
+} from "@/app/actions/projects";
 
 interface Project {
   id: string;
@@ -18,6 +23,7 @@ interface Project {
   tags?: string[];
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
 }
 
 interface ProjectTabsProps {
@@ -29,6 +35,31 @@ type TabName = "details" | "estimates" | "stages";
 
 export function ProjectTabs({ projectId, project }: ProjectTabsProps) {
   const [activeTab, setActiveTab] = useState<TabName>("details");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+
+  const isArchived = project.deletedAt !== null && project.deletedAt !== undefined;
+
+  const handleArchive = async () => {
+    if (!confirm("Вы уверены, что хотите заархивировать этот проект?")) {
+      return;
+    }
+    setIsArchiving(true);
+    try {
+      await archiveProjectAction(projectId);
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    setIsArchiving(true);
+    try {
+      await restoreProjectAction(projectId);
+    } finally {
+      setIsArchiving(false);
+    }
+  };
 
   const tabs: { id: TabName; label: string }[] = [
     { id: "details", label: "Details" },
@@ -128,10 +159,34 @@ export function ProjectTabs({ projectId, project }: ProjectTabsProps) {
               )}
             </div>
 
-            <div className="mt-6 pt-6 border-t">
-              <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
-                Edit Project
+            <div className="mt-6 pt-6 border-t flex gap-3">
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                disabled={isArchived}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                Редактировать
               </button>
+
+              {!isArchived && (
+                <button
+                  onClick={handleArchive}
+                  disabled={isArchiving}
+                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {isArchiving ? "Архивирование..." : "Заархивировать"}
+                </button>
+              )}
+
+              {isArchived && (
+                <button
+                  onClick={handleRestore}
+                  disabled={isArchiving}
+                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {isArchiving ? "Восстановление..." : "Восстановить"}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -212,6 +267,14 @@ export function ProjectTabs({ projectId, project }: ProjectTabsProps) {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      <ProjectEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        project={project}
+        projectId={projectId}
+      />
     </div>
   );
 }
