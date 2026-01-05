@@ -162,12 +162,15 @@ jobs:
           set -e
 
           echo "🚀 Starting deployment..."
+          echo "📍 PROD_PATH=$PROD_PATH"
+          echo "📍 POSTGRES_USER=$POSTGRES_USER"
 
           # Navigate to project directory
           cd "$PROD_PATH"
 
           # Write env file for docker compose
           env_file="\$PWD/.buildos.env"
+          echo "📝 Writing env file to: \$env_file"
           printf '%s\n' \\
             "POSTGRES_USER=$POSTGRES_USER" \\
             "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" \\
