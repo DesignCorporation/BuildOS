@@ -155,6 +155,8 @@ jobs:
           MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
           MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         run: |
           ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST << EOF
           set -e
@@ -162,7 +164,7 @@ jobs:
           echo "🚀 Starting deployment..."
 
           # Navigate to project directory
-          cd "${{ secrets.PROD_PATH }}"
+          cd "$PROD_PATH"
 
           # Write env file for docker compose
           env_file="$PWD/.buildos.env"
@@ -180,10 +182,10 @@ jobs:
           git pull origin main
 
           # Set image tag
-          export IMAGE_TAG=${{ github.ref_name }}
+          export IMAGE_TAG="$IMAGE_TAG"
 
           # Login to GHCR
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
           # Pull new image
           docker compose --env-file "$env_file" -f docker-compose.prod.yml pull web
