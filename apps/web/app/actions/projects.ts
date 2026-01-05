@@ -7,6 +7,7 @@ import { ProjectService } from "@buildos/services";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getDemoContext } from "@/lib/demo-context";
 
 // ============================================================================
 // MOCK AUTH - Replace with real NextAuth session in Issue #4 (Authentication)
@@ -14,11 +15,7 @@ import { z } from "zod";
 
 async function getCurrentContext() {
   // TODO: Replace with real session from NextAuth
-  // For now, use demo tenant/user from seed data
-  return {
-    tenantId: "demo-tenant-id", // Will be from session
-    userId: "demo-user-id", // Will be from session
-  };
+  return getDemoContext();
 }
 
 // ============================================================================
