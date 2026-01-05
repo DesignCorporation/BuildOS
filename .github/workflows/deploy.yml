@@ -158,7 +158,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
-          ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST << EOF
+          ssh -i ~/.ssh/deploy_key -o SendEnv=PROD_PATH,IMAGE_TAG,POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB,REDIS_PASSWORD,MINIO_ROOT_USER,MINIO_ROOT_PASSWORD,NEXTAUTH_SECRET,GITHUB_TOKEN,GITHUB_ACTOR $PROD_USER@$PROD_HOST << 'EOF'
           set -e
 
           echo "🚀 Starting deployment..."
