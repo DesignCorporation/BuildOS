@@ -172,6 +172,7 @@ jobs:
           env_file="\$PWD/.buildos.env"
           echo "📝 Writing env file to: \$env_file"
           printf '%s\n' \\
+            "IMAGE_TAG=$IMAGE_TAG" \\
             "POSTGRES_USER=$POSTGRES_USER" \\
             "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" \\
             "POSTGRES_DB=$POSTGRES_DB" \\
@@ -198,6 +199,10 @@ jobs:
 
           # Pull new image
           docker compose --env-file "\$env_file" -f docker-compose.prod.yml pull web
+
+          # Wait for database to be ready
+          echo "⏳ Waiting for database to be ready..."
+          sleep 15
 
           # Run database migrations
           docker compose --env-file "\$env_file" -f docker-compose.prod.yml run --rm web npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma
