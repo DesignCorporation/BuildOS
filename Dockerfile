@@ -53,6 +53,9 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Copy dependencies from builder to ensure correct versions
+COPY --from=builder /app/node_modules ./node_modules
+
 # Copy necessary files
 RUN mkdir -p ./apps/web/public ./apps/web/.next ./packages/database/src ./packages/database/prisma
 COPY --from=builder /app/apps/web/public ./apps/web/public
