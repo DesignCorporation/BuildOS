@@ -162,10 +162,10 @@ jobs:
           echo "🚀 Starting deployment..."
 
           # Navigate to project directory
-          cd ${{ secrets.PROD_PATH }}
+          cd "${{ secrets.PROD_PATH }}"
 
           # Write env file for docker compose
-          env_file="${{ secrets.PROD_PATH }}/.buildos.env"
+          env_file="$PWD/.buildos.env"
           printf '%s\n' \
             "POSTGRES_USER=${POSTGRES_USER}" \
             "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
