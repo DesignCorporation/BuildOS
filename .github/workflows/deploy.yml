@@ -181,6 +181,9 @@ jobs:
           # Pull latest code
           git pull origin main
 
+          # Clean up old Docker resources to ensure fresh dependencies
+          docker compose --env-file "\$env_file" -f docker-compose.prod.yml down
+
           # Set image tag
           export IMAGE_TAG="$IMAGE_TAG"
 
