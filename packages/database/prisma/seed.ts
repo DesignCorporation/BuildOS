@@ -1,7 +1,9 @@
 // BuildOS - Database Seed
 // Creates: 1 tenant, 1 owner, base roles & permissions
+// + ANCHOR demo company with 7 projects, estimates, stages
 
 import { PrismaClient } from "../src/generated/client";
+import { seedAnchorProjects } from "./seed-anchor-projects";
 
 const prisma = new PrismaClient();
 
@@ -250,16 +252,351 @@ async function main() {
 
   console.log("✅ Assigned owner role to user");
 
-  console.log("\n🎉 Seed completed successfully!");
+  console.log("\n🎉 Base seed completed!");
   console.log("📊 Summary:");
   console.log(`   - Tenant: ${tenant.name} (${tenant.slug})`);
   console.log(`   - Permissions: ${createdPermissions.length}`);
   console.log(`   - Roles: 3 (owner, project_manager, client)`);
   console.log(`   - Users: 1 (${owner.email})`);
-  console.log("\n🔐 RBAC Setup:");
+
+  // ============================================================================
+  // ANCHOR CONSTRUCTION - DEMO COMPANY (70 employees)
+  // ============================================================================
+
+  console.log("\n\n🏢 Creating ANCHOR Construction demo company...");
+
+  const anchorTenant = await prisma.tenant.upsert({
+    where: { slug: "anchor-construction" },
+    update: {},
+    create: {
+      name: "ANCHOR Construction sp. z o.o.",
+      slug: "anchor-construction",
+      isActive: true,
+    },
+  });
+
+  console.log("✅ Created ANCHOR tenant");
+
+  // Create ANCHOR permissions (reuse global permissions)
+  const anchorPermissions = await Promise.all(
+    permissions.map((p) =>
+      prisma.permission.upsert({
+        where: {
+          tenantId_resource_action: {
+            tenantId: anchorTenant.id,
+            resource: p.resource,
+            action: p.action,
+          },
+        },
+        update: {},
+        create: {
+          tenantId: anchorTenant.id,
+          resource: p.resource,
+          action: p.action,
+          description: p.description,
+          isGlobal: false,
+        },
+      })
+    )
+  );
+
+  // Create ANCHOR roles
+  const anchorOwnerRole = await prisma.role.upsert({
+    where: {
+      tenantId_name: {
+        tenantId: anchorTenant.id,
+        name: "owner",
+      },
+    },
+    update: {},
+    create: {
+      tenantId: anchorTenant.id,
+      name: "owner",
+      description: "Company owner - full access",
+      isSystem: true,
+    },
+  });
+
+  const anchorPmRole = await prisma.role.upsert({
+    where: {
+      tenantId_name: {
+        tenantId: anchorTenant.id,
+        name: "project_manager",
+      },
+    },
+    update: {},
+    create: {
+      tenantId: anchorTenant.id,
+      name: "project_manager",
+      description: "Project manager",
+      isSystem: true,
+    },
+  });
+
+  const anchorClientRole = await prisma.role.upsert({
+    where: {
+      tenantId_name: {
+        tenantId: anchorTenant.id,
+        name: "client",
+      },
+    },
+    update: {},
+    create: {
+      tenantId: anchorTenant.id,
+      name: "client",
+      description: "Client - view only",
+      isSystem: true,
+    },
+  });
+
+  // Assign permissions to ANCHOR roles
+  await Promise.all(
+    anchorPermissions.map((p) =>
+      prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: {
+            roleId: anchorOwnerRole.id,
+            permissionId: p.id,
+          },
+        },
+        update: {},
+        create: {
+          roleId: anchorOwnerRole.id,
+          permissionId: p.id,
+        },
+      })
+    )
+  );
+
+  const anchorPmPerms = anchorPermissions.filter(
+    (p) =>
+      p.resource !== "users" &&
+      (p.resource === "estimates" ? p.action !== "delete" : true)
+  );
+
+  await Promise.all(
+    anchorPmPerms.map((p) =>
+      prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: {
+            roleId: anchorPmRole.id,
+            permissionId: p.id,
+          },
+        },
+        update: {},
+        create: {
+          roleId: anchorPmRole.id,
+          permissionId: p.id,
+        },
+      })
+    )
+  );
+
+  const anchorClientPerms = anchorPermissions.filter(
+    (p) =>
+      (p.resource === "projects" && p.action === "view") ||
+      (p.resource === "estimates" && p.action === "view") ||
+      (p.resource === "rooms" && p.action === "view") ||
+      (p.resource === "stages" && p.action === "view")
+  );
+
+  await Promise.all(
+    anchorClientPerms.map((p) =>
+      prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: {
+            roleId: anchorClientRole.id,
+            permissionId: p.id,
+          },
+        },
+        update: {},
+        create: {
+          roleId: anchorClientRole.id,
+          permissionId: p.id,
+        },
+      })
+    )
+  );
+
+  // Create ANCHOR Owner
+  const anchorOwner = await prisma.user.upsert({
+    where: {
+      tenantId_email: {
+        tenantId: anchorTenant.id,
+        email: "zbigniew@anchor-construction.pl",
+      },
+    },
+    update: {},
+    create: {
+      tenantId: anchorTenant.id,
+      email: "zbigniew@anchor-construction.pl",
+      name: "Zbigniew Kowalski",
+      passwordHash: "$2a$10$placeholder",
+      isActive: true,
+    },
+  });
+
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: anchorOwner.id,
+        roleId: anchorOwnerRole.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: anchorOwner.id,
+      roleId: anchorOwnerRole.id,
+    },
+  });
+
+  // Create Project Managers
+  const pm1 = await prisma.user.upsert({
+    where: {
+      tenantId_email: {
+        tenantId: anchorTenant.id,
+        email: "anna@anchor-construction.pl",
+      },
+    },
+    update: {},
+    create: {
+      tenantId: anchorTenant.id,
+      email: "anna@anchor-construction.pl",
+      name: "Anna Nowak",
+      passwordHash: "$2a$10$placeholder",
+      isActive: true,
+    },
+  });
+
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: pm1.id,
+        roleId: anchorPmRole.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: pm1.id,
+      roleId: anchorPmRole.id,
+    },
+  });
+
+  const pm2 = await prisma.user.upsert({
+    where: {
+      tenantId_email: {
+        tenantId: anchorTenant.id,
+        email: "piotr@anchor-construction.pl",
+      },
+    },
+    update: {},
+    create: {
+      tenantId: anchorTenant.id,
+      email: "piotr@anchor-construction.pl",
+      name: "Piotr Michalik",
+      passwordHash: "$2a$10$placeholder",
+      isActive: true,
+    },
+  });
+
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: pm2.id,
+        roleId: anchorPmRole.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: pm2.id,
+      roleId: anchorPmRole.id,
+    },
+  });
+
+  // Create Client users (investors)
+  const client1 = await prisma.user.upsert({
+    where: {
+      tenantId_email: {
+        tenantId: anchorTenant.id,
+        email: "jan@investment-group.pl",
+      },
+    },
+    update: {},
+    create: {
+      tenantId: anchorTenant.id,
+      email: "jan@investment-group.pl",
+      name: "Jan Investment Group",
+      passwordHash: "$2a$10$placeholder",
+      isActive: true,
+    },
+  });
+
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: client1.id,
+        roleId: anchorClientRole.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: client1.id,
+      roleId: anchorClientRole.id,
+    },
+  });
+
+  const client2 = await prisma.user.upsert({
+    where: {
+      tenantId_email: {
+        tenantId: anchorTenant.id,
+        email: "contact@propdev-fund.pl",
+      },
+    },
+    update: {},
+    create: {
+      tenantId: anchorTenant.id,
+      email: "contact@propdev-fund.pl",
+      name: "Property Development Fund",
+      passwordHash: "$2a$10$placeholder",
+      isActive: true,
+    },
+  });
+
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: client2.id,
+        roleId: anchorClientRole.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: client2.id,
+      roleId: anchorClientRole.id,
+    },
+  });
+
+  console.log("✅ Created ANCHOR users: 1 owner, 2 PMs, 2 clients");
+
+  console.log("\n🔐 RBAC Setup (ANCHOR):");
   console.log("   - Owner: Full access + view_cost");
   console.log("   - PM: Most access + view_cost (no user mgmt)");
   console.log("   - Client: View only, NO view_cost");
+
+  // Create 7 demo projects with estimates and stages
+  await seedAnchorProjects(prisma, anchorTenant.id);
+
+  // Final summary
+  console.log("\n\n🎉 ANCHOR Demo Setup Complete!");
+  console.log("📊 ANCHOR Summary:");
+  console.log("   - Tenant: ANCHOR Construction sp. z o.o.");
+  console.log("   - Users: 1 owner + 2 PMs + 2 clients");
+  console.log("   - Projects: 7 (active, planning, completed)");
+  console.log("   - Estimates: 8+ with multiple versions");
+  console.log("   - Stages: 28 (4 per project)");
+  console.log("\n🚀 Ready for demo at: buildos.designcorp.eu");
+  console.log("   → Login: zbigniew@anchor-construction.pl");
+  console.log("   → Or open as client: jan@investment-group.pl");
 }
 
 main()
