@@ -165,7 +165,7 @@ jobs:
           cd ${{ secrets.PROD_PATH }}
 
           # Write env file for docker compose
-          env_file="$HOME/.buildos.env"
+          env_file="${{ secrets.PROD_PATH }}/.buildos.env"
           printf '%s\n' \
             "POSTGRES_USER=${POSTGRES_USER}" \
             "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
