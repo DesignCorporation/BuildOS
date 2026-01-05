@@ -54,11 +54,15 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy necessary files
+RUN mkdir -p ./apps/web/public ./apps/web/.next ./packages/database/src ./packages/database/prisma
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /app/packages/database/src/generated ./packages/database/src/generated
 COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
+
+# Fix permissions
+RUN chown -R nextjs:nodejs /app
 
 USER nextjs
 
