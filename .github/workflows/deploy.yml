@@ -208,8 +208,8 @@ jobs:
           # Pull latest code
           git pull origin main
 
-          # Clean up old Docker resources to ensure fresh dependencies
-          docker compose --env-file "\$env_file" -f docker-compose.prod.yml down
+          # Stop existing services without destroying volumes
+          docker compose --env-file "\$env_file" -f docker-compose.prod.yml stop
 
           # Set image tag
           export IMAGE_TAG="$IMAGE_TAG"
@@ -227,8 +227,8 @@ jobs:
           # Run database migrations
           docker compose --env-file "\$env_file" -f docker-compose.prod.yml run --rm web npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma
 
-          # Restart services (zero-downtime)
-          docker compose --env-file "\$env_file" -f docker-compose.prod.yml up -d --no-deps --force-recreate web
+          # Restart services
+          docker compose --env-file "\$env_file" -f docker-compose.prod.yml up -d web
 
           # Cleanup old images
           docker image prune -f
