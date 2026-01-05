@@ -165,7 +165,7 @@ jobs:
           cd ${{ secrets.PROD_PATH }}
 
           # Write env file for docker compose
-          tmp_env=$(mktemp)
+          env_file="$HOME/.buildos.env"
           printf '%s\n' \
             "POSTGRES_USER=${POSTGRES_USER}" \
             "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
@@ -174,9 +174,7 @@ jobs:
             "MINIO_ROOT_USER=${MINIO_ROOT_USER}" \
             "MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}" \
             "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" \
-            > "$tmp_env"
-          sudo mv "$tmp_env" .env
-          sudo chown ${PROD_USER}:${PROD_USER} .env
+            > "$env_file"
 
           # Pull latest code
           git pull origin main
@@ -188,13 +186,13 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
           # Pull new image
-          docker compose -f docker-compose.prod.yml pull web
+          docker compose --env-file "$env_file" -f docker-compose.prod.yml pull web
 
           # Run database migrations
-          docker compose -f docker-compose.prod.yml run --rm web npx prisma migrate deploy
+          docker compose --env-file "$env_file" -f docker-compose.prod.yml run --rm web npx prisma migrate deploy
 
           # Restart services (zero-downtime)
-          docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate web
+          docker compose --env-file "$env_file" -f docker-compose.prod.yml up -d --no-deps --force-recreate web
 
           # Cleanup old images
           docker image prune -f
