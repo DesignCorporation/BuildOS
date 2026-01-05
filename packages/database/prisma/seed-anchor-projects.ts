@@ -62,6 +62,7 @@ export async function seedAnchorProjects(
         status: "completed",
         order: 1,
         completedAt: new Date("2025-10-20"),
+        notes: "Foundation complete\nPhotos: https://via.placeholder.com/800x600?text=Foundation+Excavation | https://via.placeholder.com/800x600?text=Foundation+Complete",
       },
       {
         name: "Walls",
@@ -69,6 +70,7 @@ export async function seedAnchorProjects(
         status: "in_progress",
         order: 2,
         startedAt: new Date("2025-10-21"),
+        notes: "Walls 85% complete\nPhotos: https://via.placeholder.com/800x600?text=Wall+Framing | https://via.placeholder.com/800x600?text=Walls+Progress",
       },
       {
         name: "Roof",
@@ -76,12 +78,14 @@ export async function seedAnchorProjects(
         status: "in_progress",
         order: 3,
         startedAt: new Date("2025-11-15"),
+        notes: "Roof structure in progress\nPhotos: https://via.placeholder.com/800x600?text=Roof+Structure | https://via.placeholder.com/800x600?text=Roof+Covering",
       },
       {
         name: "Finish",
         description: "Interior finishes and details",
         status: "pending",
         order: 4,
+        notes: "Coming soon - interior finishes\nExpected start: 2025-12-15",
       },
     ]
   );
@@ -218,22 +222,26 @@ export async function seedAnchorProjects(
         status: "completed",
         order: 1,
         completedAt: new Date("2025-11-01"),
+        notes: "Foundation completed\nPhotos: https://via.placeholder.com/800x600?text=Foundation+Digging | https://via.placeholder.com/800x600?text=Foundation+Done",
       },
       {
         name: "Walls",
         status: "in_progress",
         order: 2,
         startedAt: new Date("2025-11-02"),
+        notes: "Walls 70% complete\nPhotos: https://via.placeholder.com/800x600?text=Walls+Rising | https://via.placeholder.com/800x600?text=Walls+Progress",
       },
       {
         name: "Roof",
         status: "pending",
         order: 3,
+        notes: "Roof work coming next - scheduled for 2025-12-20",
       },
       {
         name: "Finish",
         status: "pending",
         order: 4,
+        notes: "Interior finishes - TBD after roof complete",
       },
     ]
   );
