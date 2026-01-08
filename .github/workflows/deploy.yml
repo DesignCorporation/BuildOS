@@ -194,13 +194,31 @@ jobs:
 
           # Write env file for docker compose
           env_file="\$PWD/.buildos.env"
+          encoded_password=\$(python3 - << 'PY'
+          import os
+          import urllib.parse
+          print(urllib.parse.quote(os.environ["POSTGRES_PASSWORD"]))
+          PY
+          )
+          encoded_redis_password=\$(python3 - << 'PY'
+          import os
+          import urllib.parse
+          print(urllib.parse.quote(os.environ["REDIS_PASSWORD"]))
+          PY
+          )
+          database_url="postgresql://\$POSTGRES_USER:\$encoded_password@postgres:5432/\$POSTGRES_DB"
+          redis_url="redis://:\$encoded_redis_password@redis:6379"
+          DATABASE_URL="\$database_url"
+          REDIS_URL="\$redis_url"
           echo "📝 Writing env file to: \$env_file"
           printf '%s\n' \\
             "IMAGE_TAG=$IMAGE_TAG" \\
             "POSTGRES_USER=$POSTGRES_USER" \\
             "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" \\
             "POSTGRES_DB=$POSTGRES_DB" \\
+            "DATABASE_URL=\$database_url" \\
             "REDIS_PASSWORD=$REDIS_PASSWORD" \\
+            "REDIS_URL=\$redis_url" \\
             "MINIO_ROOT_USER=$MINIO_ROOT_USER" \\
             "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" \\
             "NEXTAUTH_SECRET=$NEXTAUTH_SECRET" \\
@@ -208,7 +226,7 @@ jobs:
 
           echo "📋 Env file content:"
           cat "\$env_file" | sed 's/=.*/=***/'
-          export IMAGE_TAG POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD MINIO_ROOT_USER MINIO_ROOT_PASSWORD NEXTAUTH_SECRET
+          export IMAGE_TAG POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB DATABASE_URL REDIS_PASSWORD REDIS_URL MINIO_ROOT_USER MINIO_ROOT_PASSWORD NEXTAUTH_SECRET
 
           # Stop existing services without destroying volumes
           unset COMPOSE_FILE
@@ -227,12 +245,6 @@ jobs:
           echo "⏳ Waiting for database to be ready..."
           docker compose --project-directory "\$PWD" --project-name "$PROJECT_NAME" --env-file "\$env_file" -f "\$PWD/docker-compose.prod.yml" up -d postgres redis minio
           sleep 15
-
-          # Ensure database password matches current secrets (handles existing volumes)
-          echo "🔐 Syncing database password..."
-          docker compose --project-directory "\$PWD" --project-name "$PROJECT_NAME" --env-file "\$env_file" -f "\$PWD/docker-compose.prod.yml" exec -T postgres \\
-            psql -U postgres -d postgres -v "user=$POSTGRES_USER" -v "password=$POSTGRES_PASSWORD" \\
-            -c "ALTER USER :\"user\" WITH PASSWORD :'password';"
 
           # Run database migrations
           docker compose --project-directory "\$PWD" --project-name "$PROJECT_NAME" --env-file "\$env_file" -f "\$PWD/docker-compose.prod.yml" run --rm web npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma
