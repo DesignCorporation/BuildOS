@@ -315,7 +315,7 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
                                 : "text-red-600 font-medium"
                             }
                           >
-                            ${Number(estimate.margin).toFixed(2)} ({estimate.marginPercent.toFixed(1)}%)
+                            ${Number(estimate.margin).toFixed(2)} ({Number(estimate.marginPercent).toFixed(1)}%)
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
