@@ -3,10 +3,10 @@
 
 import { prisma } from "@buildos/database";
 
-const DEMO_TENANT_SLUG = "demo-company";
-const DEMO_TENANT_NAME = "Demo Construction Company";
-const DEMO_USER_EMAIL = "owner@demo-company.com";
-const DEMO_USER_NAME = "Demo Owner";
+const DEMO_TENANT_SLUG = "anchor-construction";
+const DEMO_TENANT_NAME = "ANCHOR Construction sp. z o.o.";
+const DEMO_USER_EMAIL = "zbigniew@anchor-construction.pl";
+const DEMO_USER_NAME = "Zbigniew Kowalski";
 
 export async function getDemoContext() {
   const tenant = await prisma.tenant.upsert({
