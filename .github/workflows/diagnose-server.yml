@@ -1,0 +1,47 @@
+name: Diagnose Server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    name: Check Server State
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Check server state
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_PATH: ${{ secrets.PROD_PATH }}
+        run: |
+          cat > /tmp/diagnose.sh << 'EOF'
+          echo "=== PROD_PATH value: $PROD_PATH ==="
+          echo ""
+          echo "=== Listing PROD_PATH directory ==="
+          ls -lah "$PROD_PATH" || echo "❌ Directory does not exist"
+          echo ""
+          echo "=== Looking for docker-compose files ==="
+          find "$PROD_PATH" -name "docker-compose*" -type f 2>/dev/null || echo "No docker-compose files found"
+          echo ""
+          echo "=== Current working directory after cd ==="
+          cd "$PROD_PATH" && pwd && ls -lah
+          echo ""
+          echo "=== Docker status ==="
+          docker ps -a | head -20
+          echo ""
+          echo "=== Docker compose projects ==="
+          docker compose ls
+          EOF
+
+          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" bash -s < /tmp/diagnose.sh
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
