@@ -1,0 +1,131 @@
+name: Restart Production Service
+
+on:
+  workflow_dispatch:
+
+jobs:
+  restart:
+    name: Restart Web Service
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://buildos.designcorp.eu
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Restart service
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_PATH: ${{ secrets.PROD_PATH }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          PROJECT_NAME: buildos
+        run: |
+          cat > /tmp/restart.sh << 'SCRIPT_EOF'
+          set -e
+
+          cd "$PROD_PATH"
+
+          # Write env file
+          env_file="$PWD/.buildos.env"
+          printf '%s\n' \
+            "IMAGE_TAG=main" \
+            "POSTGRES_USER=$POSTGRES_USER" \
+            "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" \
+            "POSTGRES_DB=$POSTGRES_DB" \
+            "REDIS_PASSWORD=$REDIS_PASSWORD" \
+            "MINIO_ROOT_USER=$MINIO_ROOT_USER" \
+            "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" \
+            "NEXTAUTH_SECRET=$NEXTAUTH_SECRET" \
+            > "$env_file"
+
+          encoded_password=$(python3 - "$env_file" << 'PY'
+          import sys
+          import urllib.parse
+          def get_value(path, key):
+              with open(path, encoding="utf-8") as handle:
+                  for line in handle:
+                      line = line.strip()
+                      if not line or line.startswith("#"):
+                          continue
+                      k, _, v = line.partition("=")
+                      if k == key:
+                          return v
+              raise KeyError(key)
+          print(urllib.parse.quote(get_value(sys.argv[1], "POSTGRES_PASSWORD")))
+          PY
+          )
+
+          encoded_redis_password=$(python3 - "$env_file" << 'PY'
+          import sys
+          import urllib.parse
+          def get_value(path, key):
+              with open(path, encoding="utf-8") as handle:
+                  for line in handle:
+                      line = line.strip()
+                      if not line or line.startswith("#"):
+                          continue
+                      k, _, v = line.partition("=")
+                      if k == key:
+                          return v
+              raise KeyError(key)
+          print(urllib.parse.quote(get_value(sys.argv[1], "REDIS_PASSWORD")))
+          PY
+          )
+
+          database_url="postgresql://$POSTGRES_USER:$encoded_password@postgres:5432/$POSTGRES_DB"
+          redis_url="redis://:$encoded_redis_password@redis:6379"
+          printf '%s\n' \
+            "DATABASE_URL=$database_url" \
+            "REDIS_URL=$redis_url" \
+            >> "$env_file"
+
+          export IMAGE_TAG POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB DATABASE_URL REDIS_URL MINIO_ROOT_USER MINIO_ROOT_PASSWORD NEXTAUTH_SECRET
+
+          echo "📋 Stopping web service..."
+          docker compose --project-directory "$PWD" --project-name "$PROJECT_NAME" --env-file "$env_file" -f "$PWD/docker-compose.prod.yml" stop web || true
+          sleep 2
+
+          echo "📋 Removing old web container..."
+          docker compose --project-directory "$PWD" --project-name "$PROJECT_NAME" --env-file "$env_file" -f "$PWD/docker-compose.prod.yml" rm -f web || true
+          sleep 2
+
+          echo "📋 Starting web service..."
+          docker compose --project-directory "$PWD" --project-name "$PROJECT_NAME" --env-file "$env_file" -f "$PWD/docker-compose.prod.yml" up -d web
+
+          echo "⏳ Waiting for service to start..."
+          sleep 10
+
+          echo "📋 Checking service status..."
+          docker compose --project-directory "$PWD" --project-name "$PROJECT_NAME" --env-file "$env_file" -f "$PWD/docker-compose.prod.yml" ps web
+
+          echo "📋 Checking logs..."
+          docker compose --project-directory "$PWD" --project-name "$PROJECT_NAME" --env-file "$env_file" -f "$PWD/docker-compose.prod.yml" logs web | tail -50
+
+          echo "✅ Service restart complete!"
+          SCRIPT_EOF
+
+          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" bash -s < /tmp/restart.sh
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Notify
+        run: echo "✅ Service restart completed!"
