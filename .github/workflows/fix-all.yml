@@ -21,33 +21,29 @@ jobs:
           PROD_USER: ${{ secrets.PROD_USER }}
           PROD_PATH: ${{ secrets.PROD_PATH }}
         run: |
-          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" << 'ENDSCRIPT'
+          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" bash -s "$PROD_PATH" << 'ENDSCRIPT'
+          PROD_PATH="$1"
           set -e
-          PROD_PATH="$PROD_PATH"
 
-          echo "🔍 Using PROD_PATH: $PROD_PATH"
+          echo "📍 Production path: $PROD_PATH"
 
-          if [ ! -d "$PROD_PATH" ]; then
-            echo "❌ Directory not found: $PROD_PATH"
+          if [ -z "$PROD_PATH" ] || [ ! -d "$PROD_PATH" ]; then
+            echo "❌ Invalid path: $PROD_PATH"
+            echo "📂 Home contents:"
+            ls -la ~
             exit 1
           fi
 
           cd "$PROD_PATH"
-          pwd
+          echo "✅ Changed to: $(pwd)"
 
           echo ""
-          echo "📋 Stopping all buildos containers..."
-          docker compose -f docker-compose.prod.yml down || true
+          echo "📋 Stopping buildos..."
+          docker compose -f docker-compose.prod.yml down 2>/dev/null || true
           sleep 3
 
           echo ""
-          echo "📋 Removing docker network..."
-          docker network rm buildos_buildos-network 2>/dev/null || true
-          docker network rm buildos-network 2>/dev/null || true
-          sleep 2
-
-          echo ""
-          echo "📋 Starting all services..."
+          echo "📋 Starting buildos..."
           docker compose -f docker-compose.prod.yml up -d
 
           sleep 15
@@ -57,7 +53,7 @@ jobs:
           docker compose -f docker-compose.prod.yml ps
 
           echo ""
-          echo "✅ Production fix complete!"
+          echo "✅ Done!"
           ENDSCRIPT
 
       - name: Cleanup SSH
