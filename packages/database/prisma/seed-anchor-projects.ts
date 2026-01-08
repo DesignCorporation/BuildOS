@@ -9,6 +9,15 @@ export async function seedAnchorProjects(
   tenantId: string
 ) {
   console.log("📦 Creating 7 ANCHOR projects with estimates and stages...\n");
+  const existing = await prisma.project.findFirst({
+    where: { tenantId, name: 'Villa "Wilanów Heights"' },
+    select: { id: true },
+  });
+
+  if (existing) {
+    console.log("⚠️  ANCHOR demo projects already seeded. Skipping.");
+    return;
+  }
 
   async function createEstimateItem(
     estimateId: string,
