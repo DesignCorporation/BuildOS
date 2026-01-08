@@ -1,0 +1,83 @@
+name: Fix Web Container Network
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    name: Fix Network Connection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Fix web container network
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+        run: |
+          cat > /tmp/fix_network.sh << 'EOF'
+          set -e
+
+          echo "📋 Stopping buildos-web container..."
+          docker stop buildos-web || true
+          sleep 2
+
+          echo "📋 Removing buildos-web container completely..."
+          docker rm -f buildos-web || true
+          sleep 2
+
+          echo "📋 Checking docker network buildos-network..."
+          docker network inspect buildos-network || echo "Network issue detected"
+
+          echo ""
+          echo "📋 Listing running containers..."
+          docker ps
+
+          echo ""
+          echo "📋 Starting buildos web container with docker compose..."
+          cd /home/buildos
+          # Get env file
+          env_file=".buildos.env"
+          if [ ! -f "$env_file" ]; then
+            echo "❌ Error: .buildos.env file not found!"
+            exit 1
+          fi
+
+          # Start only web container
+          docker compose --env-file "$env_file" -f docker-compose.prod.yml up -d web
+
+          sleep 10
+
+          echo ""
+          echo "📋 Checking new container status..."
+          docker ps -a | grep buildos-web
+
+          echo ""
+          echo "📋 Checking network connection..."
+          docker inspect buildos-web | grep -A 30 "Networks\|IPAddress"
+
+          echo ""
+          echo "📋 Container logs..."
+          docker logs --tail 30 buildos-web
+
+          echo ""
+          echo "📋 Testing health endpoint (localhost:3000)..."
+          curl -v http://localhost:3000/api/health 2>&1 | head -50 || echo "Test failed"
+
+          echo ""
+          echo "✅ Fix complete!"
+          EOF
+
+          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" bash < /tmp/fix_network.sh
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Success
+        run: echo "✅ Network fix completed!"
