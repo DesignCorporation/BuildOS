@@ -2,7 +2,11 @@
 // Simple wrapper for logging user actions
 
 import { prisma } from "@buildos/database";
-import { v4 as uuidv4 } from "uuid";
+
+// Generate random UUID v4
+function generateTraceId(): string {
+  return crypto.randomUUID();
+}
 
 export interface AuditLogEntry {
   action: string;
@@ -27,7 +31,7 @@ export async function auditLog(entry: AuditLogEntry): Promise<void> {
         actorId: entry.actorId,
         actorType: "user",
         tenantId: entry.tenantId,
-        traceId: uuidv4(),
+        traceId: generateTraceId(),
         metadata: entry.metadata,
       },
     });
