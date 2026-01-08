@@ -189,6 +189,9 @@ jobs:
           # Navigate to project directory
           cd "$PROD_PATH"
 
+          # Pull latest code
+          git pull --rebase --autostash origin main
+
           # Write env file for docker compose
           env_file="\$PWD/.buildos.env"
           echo "📝 Writing env file to: \$env_file"
@@ -205,9 +208,6 @@ jobs:
 
           echo "📋 Env file content:"
           cat "\$env_file" | sed 's/=.*/=***/'
-
-          # Pull latest code
-          git pull origin main
 
           # Stop existing services without destroying volumes
           docker compose --project-name "$PROJECT_NAME" --env-file "\$env_file" -f docker-compose.prod.yml stop
