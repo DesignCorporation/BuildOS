@@ -38,12 +38,19 @@ jobs:
           echo "✅ Changed to: $(pwd)"
 
           echo ""
-          echo "📋 Stopping buildos..."
-          docker compose -f docker-compose.prod.yml down 2>/dev/null || true
-          sleep 3
+          echo "📋 Force stopping all buildos containers..."
+          docker stop buildos-web buildos-worker-pdf buildos-postgres buildos-redis buildos-minio 2>/dev/null || true
+          sleep 2
+          docker rm -f buildos-web buildos-worker-pdf buildos-postgres buildos-redis buildos-minio 2>/dev/null || true
+          sleep 2
 
           echo ""
-          echo "📋 Starting buildos..."
+          echo "📋 Removing network..."
+          docker network rm buildos_buildos-network 2>/dev/null || true
+          sleep 1
+
+          echo ""
+          echo "📋 Starting all services..."
           docker compose -f docker-compose.prod.yml up -d
 
           sleep 15
