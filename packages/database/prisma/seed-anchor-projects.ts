@@ -10,6 +10,47 @@ export async function seedAnchorProjects(
 ) {
   console.log("📦 Creating 7 ANCHOR projects with estimates and stages...\n");
 
+  async function createEstimateItem(
+    estimateId: string,
+    item: {
+      type: string;
+      name: string;
+      description?: string;
+      unit: string;
+      quantity: Decimal | string | number;
+      unitCost: Decimal | string | number;
+      unitClient: Decimal | string | number;
+    }
+  ) {
+    const quantity = new Decimal(item.quantity);
+    const unitCost = new Decimal(item.unitCost);
+    const unitClient = new Decimal(item.unitClient);
+    const totalCost = unitCost.mul(quantity);
+    const totalClient = unitClient.mul(quantity);
+    const margin = totalClient.sub(totalCost);
+    const marginPercent = totalCost.equals(0)
+      ? new Decimal(0)
+      : margin.div(totalCost).mul(100);
+
+    return prisma.estimateItem.create({
+      data: {
+        tenantId,
+        estimateId,
+        type: item.type,
+        name: item.name,
+        description: item.description,
+        unit: item.unit,
+        quantity,
+        unitCost,
+        totalCost,
+        unitClient,
+        totalClient,
+        margin,
+        marginPercent,
+      },
+    });
+  }
+
   // Helper to create project with room and stages
   async function createProjectWithStages(
     projectData: any,
@@ -25,7 +66,7 @@ export async function seedAnchorProjects(
         tenantId,
         projectId: project.id,
         name: "Main Construction",
-        description: "Main construction phases",
+        notes: "Main construction phases",
       },
     });
 
@@ -106,56 +147,40 @@ export async function seedAnchorProjects(
   });
 
   // Add items to v1
-  await prisma.estimateItem.create({
-    data: {
-      tenantId,
-      estimateId: est1v1.id,
-      type: "work",
-      name: "Excavation & Foundation",
-      unit: "m³",
-      quantity: new Decimal("450"),
-      unitCost: new Decimal("350"),
-      unitClient: new Decimal("400"),
-    },
+  await createEstimateItem(est1v1.id, {
+    type: "work",
+    name: "Excavation & Foundation",
+    unit: "m³",
+    quantity: new Decimal("450"),
+    unitCost: new Decimal("350"),
+    unitClient: new Decimal("400"),
   });
 
-  await prisma.estimateItem.create({
-    data: {
-      tenantId,
-      estimateId: est1v1.id,
-      type: "material",
-      name: "Premium Concrete & Reinforcement",
-      unit: "m³",
-      quantity: new Decimal("200"),
-      unitCost: new Decimal("800"),
-      unitClient: new Decimal("900"),
-    },
+  await createEstimateItem(est1v1.id, {
+    type: "material",
+    name: "Premium Concrete & Reinforcement",
+    unit: "m³",
+    quantity: new Decimal("200"),
+    unitCost: new Decimal("800"),
+    unitClient: new Decimal("900"),
   });
 
-  await prisma.estimateItem.create({
-    data: {
-      tenantId,
-      estimateId: est1v1.id,
-      type: "work",
-      name: "Wall Construction",
-      unit: "m²",
-      quantity: new Decimal("1200"),
-      unitCost: new Decimal("350"),
-      unitClient: new Decimal("380"),
-    },
+  await createEstimateItem(est1v1.id, {
+    type: "work",
+    name: "Wall Construction",
+    unit: "m²",
+    quantity: new Decimal("1200"),
+    unitCost: new Decimal("350"),
+    unitClient: new Decimal("380"),
   });
 
-  await prisma.estimateItem.create({
-    data: {
-      tenantId,
-      estimateId: est1v1.id,
-      type: "material",
-      name: "Facade Materials (Natural Stone)",
-      unit: "m²",
-      quantity: new Decimal("400"),
-      unitCost: new Decimal("450"),
-      unitClient: new Decimal("550"),
-    },
+  await createEstimateItem(est1v1.id, {
+    type: "material",
+    name: "Facade Materials (Natural Stone)",
+    unit: "m²",
+    quantity: new Decimal("400"),
+    unitCost: new Decimal("450"),
+    unitClient: new Decimal("550"),
   });
 
   // v2 - Sent to client
@@ -174,17 +199,13 @@ export async function seedAnchorProjects(
     },
   });
 
-  await prisma.estimateItem.create({
-    data: {
-      tenantId,
-      estimateId: est1v2.id,
-      type: "work",
-      name: "Excavation & Foundation",
-      unit: "m³",
-      quantity: new Decimal("450"),
-      unitCost: new Decimal("350"),
-      unitClient: new Decimal("400"),
-    },
+  await createEstimateItem(est1v2.id, {
+    type: "work",
+    name: "Excavation & Foundation",
+    unit: "m³",
+    quantity: new Decimal("450"),
+    unitCost: new Decimal("350"),
+    unitClient: new Decimal("400"),
   });
 
   // v3 - Approved
