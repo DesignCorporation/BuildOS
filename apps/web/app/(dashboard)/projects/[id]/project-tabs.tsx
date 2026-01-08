@@ -31,10 +31,10 @@ interface Estimate {
   projectId: string;
   version: number;
   status: string;
-  totalCost: number;
-  totalClient: number;
-  margin: number;
-  marginPercent: number;
+  totalCost: number | { toString(): string };
+  totalClient: number | { toString(): string };
+  margin: number | { toString(): string };
+  marginPercent: number | { toString(): string };
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date | null;

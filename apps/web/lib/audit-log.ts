@@ -2,12 +2,13 @@
 // Simple wrapper for logging user actions
 
 import { prisma } from "@buildos/database";
+import { v4 as uuidv4 } from "uuid";
 
 export interface AuditLogEntry {
   action: string;
-  entity: string;
-  entityId: string;
-  userId: string;
+  resource: string;
+  resourceId: string;
+  actorId: string;
   tenantId: string;
   metadata?: Record<string, any>;
 }
@@ -21,10 +22,12 @@ export async function auditLog(entry: AuditLogEntry): Promise<void> {
     await prisma.auditLog.create({
       data: {
         action: entry.action,
-        entity: entry.entity,
-        entityId: entry.entityId,
-        userId: entry.userId,
+        resource: entry.resource,
+        resourceId: entry.resourceId,
+        actorId: entry.actorId,
+        actorType: "user",
         tenantId: entry.tenantId,
+        traceId: uuidv4(),
         metadata: entry.metadata,
       },
     });

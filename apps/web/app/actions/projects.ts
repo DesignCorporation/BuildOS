@@ -147,10 +147,10 @@ export async function createProjectAction(data: z.infer<typeof createProjectSche
 
     // Log to audit trail
     await auditLog({
-      action: "PROJECT_CREATED",
-      entity: "Project",
-      entityId: project.id,
-      userId: context.userId,
+      action: "create",
+      resource: "project",
+      resourceId: project.id,
+      actorId: context.userId,
       tenantId: context.tenantId,
       metadata: { name: project.name },
     });
@@ -186,10 +186,10 @@ export async function updateProjectAction(
 
     // Log to audit trail
     await auditLog({
-      action: "PROJECT_UPDATED",
-      entity: "Project",
-      entityId: project.id,
-      userId: context.userId,
+      action: "update",
+      resource: "project",
+      resourceId: project.id,
+      actorId: context.userId,
       tenantId: context.tenantId,
       metadata: { name: project.name, status: project.status },
     });
@@ -222,10 +222,10 @@ export async function archiveProjectAction(id: string) {
 
     // Log to audit trail
     await auditLog({
-      action: "PROJECT_ARCHIVED",
-      entity: "Project",
-      entityId: project.id,
-      userId: context.userId,
+      action: "delete",
+      resource: "project",
+      resourceId: project.id,
+      actorId: context.userId,
       tenantId: context.tenantId,
       metadata: { name: project.name },
     });
@@ -282,10 +282,10 @@ export async function restoreProjectAction(id: string) {
 
     // Log to audit trail
     await auditLog({
-      action: "PROJECT_RESTORED",
-      entity: "Project",
-      entityId: project.id,
-      userId: context.userId,
+      action: "restore",
+      resource: "project",
+      resourceId: project.id,
+      actorId: context.userId,
       tenantId: context.tenantId,
       metadata: { name: project.name },
     });
