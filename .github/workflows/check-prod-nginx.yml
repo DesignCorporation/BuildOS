@@ -1,0 +1,53 @@
+name: Check Production Nginx Config
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Check Prod Nginx
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Check prod nginx config
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+        run: |
+          cat > /tmp/check_prod.sh << 'EOF'
+          echo "=== Production nginx config (buildos.designcorp.eu.conf) ==="
+          sudo cat /etc/nginx/sites-available/buildos.designcorp.eu.conf || cat /etc/nginx/sites-available/buildos.designcorp.eu.conf || echo "Cannot read file"
+
+          echo ""
+          echo "=== Nginx error log (last 50 lines) ==="
+          sudo tail -50 /var/log/nginx/error.log || tail -50 /var/log/nginx/error.log
+
+          echo ""
+          echo "=== Nginx access log for buildos (last 50 lines) ==="
+          ls -lah /var/log/nginx/*buildos* || echo "No buildos logs found"
+
+          echo ""
+          echo "=== Check if port 3000/3001 are listening ==="
+          netstat -tlnp | grep 3000 || echo "Port 3000 not found"
+          netstat -tlnp | grep 3001 || echo "Port 3001 not found"
+
+          echo ""
+          echo "=== Docker buildos-web network config ==="
+          docker inspect buildos-web 2>&1 | grep -A 20 "Networks\|IPAddress"
+
+          echo ""
+          echo "=== curl test to localhost:3000 ==="
+          curl -v http://localhost:3000/api/health 2>&1 | head -50
+          EOF
+
+          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" bash < /tmp/check_prod.sh
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
