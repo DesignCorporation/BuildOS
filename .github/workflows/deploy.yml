@@ -225,6 +225,7 @@ jobs:
 
           # Wait for database to be ready
           echo "⏳ Waiting for database to be ready..."
+          docker compose --project-directory "\$PWD" --project-name "$PROJECT_NAME" --env-file "\$env_file" -f "\$PWD/docker-compose.prod.yml" up -d postgres redis minio
           sleep 15
 
           # Ensure database password matches current secrets (handles existing volumes)
