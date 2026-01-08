@@ -177,6 +177,7 @@ jobs:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
+          PROJECT_NAME: buildos
         run: |
           cat > /tmp/deploy.sh << SCRIPT_EOF
           set -e
@@ -209,7 +210,7 @@ jobs:
           git pull origin main
 
           # Stop existing services without destroying volumes
-          docker compose --env-file "\$env_file" -f docker-compose.prod.yml stop
+          docker compose --project-name "$PROJECT_NAME" --env-file "\$env_file" -f docker-compose.prod.yml stop
 
           # Set image tag
           export IMAGE_TAG="$IMAGE_TAG"
@@ -218,17 +219,17 @@ jobs:
           echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
           # Pull new image
-          docker compose --env-file "\$env_file" -f docker-compose.prod.yml pull web
+          docker compose --project-name "$PROJECT_NAME" --env-file "\$env_file" -f docker-compose.prod.yml pull web
 
           # Wait for database to be ready
           echo "⏳ Waiting for database to be ready..."
           sleep 15
 
           # Run database migrations
-          docker compose --env-file "\$env_file" -f docker-compose.prod.yml run --rm web npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma
+          docker compose --project-name "$PROJECT_NAME" --env-file "\$env_file" -f docker-compose.prod.yml run --rm web npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma
 
           # Restart services
-          docker compose --env-file "\$env_file" -f docker-compose.prod.yml up -d web
+          docker compose --project-name "$PROJECT_NAME" --env-file "\$env_file" -f docker-compose.prod.yml up -d web
 
           # Cleanup old images
           docker image prune -f
