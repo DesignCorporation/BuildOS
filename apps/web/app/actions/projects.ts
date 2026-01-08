@@ -114,7 +114,7 @@ export async function getProjectByIdAction(id: string) {
     }
 
     // Load estimates for this project
-    let estimates = [];
+    let estimates: any[] = [];
     try {
       const estimatesResult = await estimateService.getEstimatesByProjectId(id, {
         limit: 100, // Get all estimates for this project
