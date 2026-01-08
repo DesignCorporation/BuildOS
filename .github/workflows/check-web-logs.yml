@@ -1,0 +1,46 @@
+name: Check Web Logs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Check web logs
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_PATH: ${{ secrets.PROD_PATH }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" bash -s "$PROD_PATH" << 'ENDSCRIPT'
+          PROD_PATH="$1"
+          cd "$PROD_PATH"
+
+          echo "=== Web container status ==="
+          docker ps -a | grep buildos-web
+
+          echo ""
+          echo "=== Web container logs (last 60 lines) ==="
+          docker logs --tail 60 buildos-web
+
+          echo ""
+          echo "=== Testing curl to localhost:3000 ==="
+          timeout 5 curl -v http://localhost:3000/api/health 2>&1 || echo "Connection failed"
+
+          echo ""
+          echo "=== Docker network ==="
+          docker network inspect buildos_buildos-network | grep -A 30 "Containers\|IPAddress" || true
+
+          ENDSCRIPT
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
