@@ -1,0 +1,58 @@
+name: Restart Web Container
+
+on:
+  workflow_dispatch:
+
+jobs:
+  restart:
+    name: Restart Web Container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Restart web container
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+        run: |
+          cat > /tmp/restart_web.sh << 'EOF'
+          echo "📋 Getting current container state..."
+          docker ps -a | grep buildos-web
+
+          echo ""
+          echo "📋 Restarting buildos-web container..."
+          docker restart buildos-web
+
+          echo ""
+          echo "⏳ Waiting 5 seconds for container to start..."
+          sleep 5
+
+          echo ""
+          echo "📋 Checking new container state..."
+          docker ps -a | grep buildos-web
+
+          echo ""
+          echo "📋 Checking container logs (last 50 lines)..."
+          docker logs --tail 50 buildos-web
+
+          echo ""
+          echo "📋 Testing health endpoint..."
+          curl -v http://localhost:3000/api/health || echo "Health check failed"
+
+          echo ""
+          echo "✅ Restart complete!"
+          EOF
+
+          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" bash < /tmp/restart_web.sh
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Success
+        run: echo "✅ Web container restarted!"
