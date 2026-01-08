@@ -205,36 +205,19 @@ jobs:
             "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" \\
             "NEXTAUTH_SECRET=$NEXTAUTH_SECRET" \\
             > "\$env_file"
-          encoded_password=\$(python3 - "\$env_file" << 'PY'
-          import sys
+          set -a
+          . "\$env_file"
+          set +a
+          encoded_password=\$(python3 - << 'PY'
           import urllib.parse
-          def get_value(path, key):
-              with open(path, encoding="utf-8") as handle:
-                  for line in handle:
-                      line = line.strip()
-                      if not line or line.startswith("#"):
-                          continue
-                      k, _, v = line.partition("=")
-                      if k == key:
-                          return v
-              raise KeyError(key)
-          print(urllib.parse.quote(get_value(sys.argv[1], "POSTGRES_PASSWORD")))
+          import os
+          print(urllib.parse.quote(os.environ["POSTGRES_PASSWORD"]))
           PY
           )
-          encoded_redis_password=\$(python3 - "\$env_file" << 'PY'
-          import sys
+          encoded_redis_password=\$(python3 - << 'PY'
           import urllib.parse
-          def get_value(path, key):
-              with open(path, encoding="utf-8") as handle:
-                  for line in handle:
-                      line = line.strip()
-                      if not line or line.startswith("#"):
-                          continue
-                      k, _, v = line.partition("=")
-                      if k == key:
-                          return v
-              raise KeyError(key)
-          print(urllib.parse.quote(get_value(sys.argv[1], "REDIS_PASSWORD")))
+          import os
+          print(urllib.parse.quote(os.environ["REDIS_PASSWORD"]))
           PY
           )
           database_url="postgresql://\$POSTGRES_USER:\$encoded_password@postgres:5432/\$POSTGRES_DB"
