@@ -58,6 +58,7 @@ services:
     image: ghcr.io/designcorporation/buildos:main
     container_name: buildos-web-dev
     restart: unless-stopped
+    command: sh -c "npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma && node apps/web/server.js"
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://buildos:buildos_dev_password@postgres:5432/buildos_dev
