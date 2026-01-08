@@ -114,15 +114,22 @@ export async function getProjectByIdAction(id: string) {
     }
 
     // Load estimates for this project
-    const estimatesResult = await estimateService.getEstimatesByProjectId(id, {
-      limit: 100, // Get all estimates for this project
-    });
+    let estimates = [];
+    try {
+      const estimatesResult = await estimateService.getEstimatesByProjectId(id, {
+        limit: 100, // Get all estimates for this project
+      });
+      estimates = estimatesResult.data || [];
+    } catch (estimateError) {
+      console.warn("Failed to load estimates for project:", estimateError);
+      // Continue without estimates rather than failing the whole request
+    }
 
     return {
       success: true,
       data: {
         project,
-        estimates: estimatesResult.data || [],
+        estimates,
       },
     };
   } catch (error) {
