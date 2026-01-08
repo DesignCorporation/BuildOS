@@ -55,12 +55,14 @@ services:
 
   # Web app - runs in development mode with hot reload
   web:
-    image: ghcr.io/designcorporation/buildos:main
+    image: node:20-alpine
     container_name: buildos-web-dev
     restart: unless-stopped
-    command: sh -c "npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma && node apps/web/server.js"
+    working_dir: /app
+    command: sh -c "npm --workspace @buildos/web run dev"
     environment:
       NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "true"
       DATABASE_URL: postgresql://buildos:buildos_dev_password@postgres:5432/buildos_dev
       REDIS_URL: redis://redis:6379
       REDIS_HOST: redis
@@ -70,6 +72,8 @@ services:
       MINIO_ACCESS_KEY: buildos
       MINIO_SECRET_KEY: buildos_minio_dev
       PDF_STORAGE_DIR: /tmp/buildos-pdfs
+    volumes:
+      - ./:/app
     ports:
       - "3001:3000"
     depends_on:
