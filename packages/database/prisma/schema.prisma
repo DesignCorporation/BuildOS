@@ -2,8 +2,9 @@
 // Strictly following ADR Pack V1
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/client"
+  provider      = "prisma-client-js"
+  output        = "../src/generated/client"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
 }
 
 datasource db {
