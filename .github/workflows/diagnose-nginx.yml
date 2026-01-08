@@ -1,0 +1,72 @@
+name: Diagnose Nginx
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    name: Check Nginx Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Check nginx config
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+        run: |
+          cat > /tmp/check_nginx.sh << 'EOF'
+          echo "=== Nginx Status ==="
+          systemctl status nginx || echo "systemctl not available"
+
+          echo ""
+          echo "=== Nginx Config File Locations ==="
+          find / -name "nginx.conf" -o -name "*.conf" -path "*/nginx/*" 2>/dev/null | grep -E "(nginx|sites)" | head -20
+
+          echo ""
+          echo "=== Main nginx.conf ==="
+          cat /etc/nginx/nginx.conf || echo "File not found"
+
+          echo ""
+          echo "=== Sites Available ==="
+          ls -lah /etc/nginx/sites-available/ 2>/dev/null || echo "No sites-available directory"
+
+          echo ""
+          echo "=== Sites Enabled ==="
+          ls -lah /etc/nginx/sites-enabled/ 2>/dev/null || echo "No sites-enabled directory"
+
+          echo ""
+          echo "=== BuildOS Site Config ==="
+          cat /etc/nginx/sites-enabled/* | head -100 || cat /etc/nginx/sites-available/* | head -100 || echo "No site config found"
+
+          echo ""
+          echo "=== Nginx Error Log (last 30 lines) ==="
+          tail -30 /var/log/nginx/error.log || echo "No error log found"
+
+          echo ""
+          echo "=== Nginx Access Log (last 30 lines) ==="
+          tail -30 /var/log/nginx/access.log || echo "No access log found"
+
+          echo ""
+          echo "=== Testing Nginx Configuration ==="
+          nginx -t || echo "nginx -t failed"
+
+          echo ""
+          echo "=== Docker Container buildos-web Details ==="
+          docker inspect buildos-web --format='{{json .NetworkSettings.Networks}}' | head -50
+
+          echo ""
+          echo "=== Docker Network buildos-network ==="
+          docker network inspect buildos-network || echo "Network not found"
+          EOF
+
+          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" bash < /tmp/check_nginx.sh
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
