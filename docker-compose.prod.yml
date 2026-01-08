@@ -73,7 +73,7 @@ services:
       NEXTAUTH_URL: https://buildos.designcorp.eu
       PDF_STORAGE_DIR: /app/storage/pdfs
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3000"
     volumes:
       - pdf_storage:/app/storage/pdfs
     depends_on:
