@@ -55,9 +55,7 @@ services:
 
   # Web app - runs in development mode with hot reload
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
+    image: ghcr.io/designcorporation/buildos:main
     container_name: buildos-web-dev
     restart: unless-stopped
     environment:
@@ -73,12 +71,6 @@ services:
       PDF_STORAGE_DIR: /tmp/buildos-pdfs
     ports:
       - "3001:3000"
-    volumes:
-      - ./apps:/app/apps
-      - ./packages:/app/packages
-      - /app/node_modules
-      - /app/apps/web/node_modules
-      - pdf_storage:/tmp/buildos-pdfs
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,12 +81,12 @@ services:
 
   # PDF Worker - processes PDF generation jobs from BullMQ
   worker-pdf:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
+    image: ghcr.io/designcorporation/buildos:main
     container_name: buildos-worker-pdf-dev
     restart: unless-stopped
-    command: node apps/web/lib/workers/pdf-worker.tsx
+    profiles:
+      - worker
+    command: node apps/web/lib/workers/pdf-worker.js
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://buildos:buildos_dev_password@postgres:5432/buildos_dev
@@ -102,12 +94,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PDF_STORAGE_DIR: /tmp/buildos-pdfs
-    volumes:
-      - ./apps:/app/apps
-      - ./packages:/app/packages
-      - /app/node_modules
-      - /app/apps/web/node_modules
-      - pdf_storage:/tmp/buildos-pdfs
     depends_on:
       postgres:
         condition: service_healthy
