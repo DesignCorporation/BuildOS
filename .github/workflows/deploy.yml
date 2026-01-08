@@ -208,6 +208,7 @@ jobs:
 
           echo "📋 Env file content:"
           cat "\$env_file" | sed 's/=.*/=***/'
+          export IMAGE_TAG POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD MINIO_ROOT_USER MINIO_ROOT_PASSWORD NEXTAUTH_SECRET
 
           # Stop existing services without destroying volumes
           unset COMPOSE_FILE
@@ -225,6 +226,12 @@ jobs:
           # Wait for database to be ready
           echo "⏳ Waiting for database to be ready..."
           sleep 15
+
+          # Ensure database password matches current secrets (handles existing volumes)
+          echo "🔐 Syncing database password..."
+          docker compose --project-directory "\$PWD" --project-name "$PROJECT_NAME" --env-file "\$env_file" -f "\$PWD/docker-compose.prod.yml" exec -T postgres \\
+            psql -U postgres -d postgres -v "user=$POSTGRES_USER" -v "password=$POSTGRES_PASSWORD" \\
+            -c "ALTER USER :\"user\" WITH PASSWORD :'password';"
 
           # Run database migrations
           docker compose --project-directory "\$PWD" --project-name "$PROJECT_NAME" --env-file "\$env_file" -f "\$PWD/docker-compose.prod.yml" run --rm web npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma
