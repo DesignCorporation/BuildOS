@@ -19,19 +19,21 @@ jobs:
         env:
           PROD_HOST: ${{ secrets.PROD_HOST }}
           PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_PATH: ${{ secrets.PROD_PATH }}
         run: |
-          cat > /tmp/fix_all.sh << 'EOF'
+          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" << 'ENDSCRIPT'
           set -e
+          PROD_PATH="$PROD_PATH"
 
-          echo "🔍 Finding production directory..."
-          PROD_PATH=$(find ~ -maxdepth 3 -name "docker-compose.prod.yml" -type f 2>/dev/null | head -1 | xargs dirname)
-          if [ -z "$PROD_PATH" ]; then
-            echo "❌ Could not find docker-compose.prod.yml!"
+          echo "🔍 Using PROD_PATH: $PROD_PATH"
+
+          if [ ! -d "$PROD_PATH" ]; then
+            echo "❌ Directory not found: $PROD_PATH"
             exit 1
           fi
-          echo "✅ Found: $PROD_PATH"
 
           cd "$PROD_PATH"
+          pwd
 
           echo ""
           echo "📋 Stopping all buildos containers..."
@@ -39,37 +41,24 @@ jobs:
           sleep 3
 
           echo ""
-          echo "📋 Removing buildos docker network..."
-          docker network rm buildos_buildos-network || docker network rm buildos-network || echo "Network not found"
+          echo "📋 Removing docker network..."
+          docker network rm buildos_buildos-network 2>/dev/null || true
+          docker network rm buildos-network 2>/dev/null || true
           sleep 2
 
           echo ""
-          echo "📋 Listing .buildos.env..."
-          if [ ! -f ".buildos.env" ]; then
-            echo "❌ .buildos.env not found!"
-            exit 1
-          fi
-          echo "✅ Found .buildos.env"
-
-          echo ""
-          echo "📋 Starting all services with docker compose..."
+          echo "📋 Starting all services..."
           docker compose -f docker-compose.prod.yml up -d
 
           sleep 15
 
           echo ""
-          echo "📋 Checking all containers..."
+          echo "📋 Service status:"
           docker compose -f docker-compose.prod.yml ps
 
           echo ""
-          echo "📋 Testing health endpoint..."
-          curl -v http://localhost:3000/api/health 2>&1 | head -30 || echo "Test will be done via nginx"
-
-          echo ""
-          echo "✅ All fixes complete!"
-          EOF
-
-          ssh -i ~/.ssh/deploy_key "$PROD_USER@$PROD_HOST" bash < /tmp/fix_all.sh
+          echo "✅ Production fix complete!"
+          ENDSCRIPT
 
       - name: Cleanup SSH
         if: always()
