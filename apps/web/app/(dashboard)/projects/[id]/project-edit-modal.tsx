@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { updateProjectAction } from "@/app/actions/projects";
 
@@ -44,6 +45,7 @@ export function ProjectEditModal({
   project,
   projectId,
 }: ProjectEditModalProps) {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -83,7 +85,8 @@ export function ProjectEditModal({
 
       if (result.success) {
         onClose();
-        // Страница перезагрузится благодаря revalidatePath в Server Action
+        // Refresh the page to show updated data
+        router.refresh();
       } else {
         setError(result.error || "Ошибка при обновлении проекта");
       }

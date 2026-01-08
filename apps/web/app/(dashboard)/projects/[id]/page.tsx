@@ -13,14 +13,14 @@ interface PageProps {
 export default async function ProjectPage({ params }: PageProps) {
   const { id } = await params;
 
-  // Fetch project
+  // Fetch project and estimates
   const result = await getProjectByIdAction(id);
 
   if (!result.success || !result.data) {
     notFound();
   }
 
-  const project = result.data;
+  const { project, estimates } = result.data;
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
@@ -132,7 +132,7 @@ export default async function ProjectPage({ params }: PageProps) {
       </div>
 
       {/* Tabs */}
-      <ProjectTabs projectId={project.id} project={project} />
+      <ProjectTabs projectId={project.id} project={project} estimates={estimates} />
     </div>
   );
 }

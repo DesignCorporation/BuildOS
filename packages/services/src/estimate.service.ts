@@ -329,6 +329,16 @@ export class EstimateService {
   }
 
   /**
+   * Get estimates for a project
+   */
+  async getEstimatesByProjectId(
+    projectId: string,
+    params?: { page?: number; limit?: number }
+  ) {
+    return this.estimateRepo.findByProjectId(projectId, params);
+  }
+
+  /**
    * Send estimate to client (changes status to "sent")
    */
   async sendEstimate(estimateId: string): Promise<Estimate> {

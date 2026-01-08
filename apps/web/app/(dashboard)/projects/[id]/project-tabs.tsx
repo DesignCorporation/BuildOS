@@ -26,19 +26,44 @@ interface Project {
   deletedAt?: Date | null;
 }
 
+interface Estimate {
+  id: string;
+  projectId: string;
+  version: number;
+  status: string;
+  totalCost: number;
+  totalClient: number;
+  margin: number;
+  marginPercent: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date | null;
+}
+
 interface ProjectTabsProps {
   projectId: string;
   project: Project;
+  estimates?: Estimate[];
 }
 
 type TabName = "details" | "estimates" | "stages";
 
-export function ProjectTabs({ projectId, project }: ProjectTabsProps) {
+export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsProps) {
   const [activeTab, setActiveTab] = useState<TabName>("details");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
 
   const isArchived = project.deletedAt !== null && project.deletedAt !== undefined;
+
+  const getStatusBadge = (status: string) => {
+    const badges: Record<string, string> = {
+      draft: "bg-gray-100 text-gray-800",
+      sent: "bg-blue-100 text-blue-800",
+      approved: "bg-green-100 text-green-800",
+      rejected: "bg-red-100 text-red-800",
+    };
+    return badges[status] || "bg-gray-100 text-gray-800";
+  };
 
   const handleArchive = async () => {
     if (!confirm("Вы уверены, что хотите заархивировать этот проект?")) {
@@ -203,36 +228,113 @@ export function ProjectTabs({ projectId, project }: ProjectTabsProps) {
               </Link>
             </div>
 
-            {/* Empty State */}
-            <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <svg
-                  className="w-20 h-20 mx-auto"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            {estimates.length === 0 ? (
+              /* Empty State */
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <svg
+                    className="w-20 h-20 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No estimates yet
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Create your first estimate for this project
+                </p>
+                <Link
+                  href={`/projects/${projectId}/estimates/new`}
+                  className="inline-block bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
+                  Create Estimate
+                </Link>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                No estimates yet
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Create your first estimate for this project
-              </p>
-              <Link
-                href={`/projects/${projectId}/estimates/new`}
-                className="inline-block bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-              >
-                Create Estimate
-              </Link>
-            </div>
+            ) : (
+              /* Estimates Table */
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Version
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total Cost
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Client Price
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Margin
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created
+                      </th>
+                      <th className="px-6 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {estimates.map((estimate) => (
+                      <tr key={estimate.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          v{estimate.version}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(
+                              estimate.status
+                            )}`}
+                          >
+                            {estimate.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          ${Number(estimate.totalCost).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          ${Number(estimate.totalClient).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span
+                            className={
+                              Number(estimate.margin) >= 0
+                                ? "text-green-600 font-medium"
+                                : "text-red-600 font-medium"
+                            }
+                          >
+                            ${Number(estimate.margin).toFixed(2)} ({estimate.marginPercent.toFixed(1)}%)
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {new Date(estimate.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Link
+                            href={`/projects/${projectId}/estimates/${estimate.id}`}
+                            className="text-blue-600 hover:text-blue-800 text-sm"
+                          >
+                            View →
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

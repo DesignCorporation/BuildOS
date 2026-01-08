@@ -3,11 +3,12 @@
 // BuildOS - Project Server Actions
 // All operations go through ProjectService (NO direct Prisma/Repo access!)
 
-import { ProjectService } from "@buildos/services";
+import { ProjectService, EstimateService } from "@buildos/services";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDemoContext } from "@/lib/demo-context";
+import { auditLog } from "@/lib/audit-log";
 
 // ============================================================================
 // MOCK AUTH - Replace with real NextAuth session in Issue #4 (Authentication)
@@ -95,14 +96,15 @@ export async function getProjectsAction(filters?: {
 }
 
 /**
- * Get project by ID
+ * Get project by ID with estimates
  */
 export async function getProjectByIdAction(id: string) {
   try {
     const context = await getCurrentContext();
-    const service = new ProjectService(context);
+    const projectService = new ProjectService(context);
+    const estimateService = new EstimateService(context);
 
-    const project = await service.getProjectById(id);
+    const project = await projectService.getProjectById(id);
 
     if (!project) {
       return {
@@ -111,9 +113,17 @@ export async function getProjectByIdAction(id: string) {
       };
     }
 
+    // Load estimates for this project
+    const estimatesResult = await estimateService.getEstimatesByProjectId(id, {
+      limit: 100, // Get all estimates for this project
+    });
+
     return {
       success: true,
-      data: project,
+      data: {
+        project,
+        estimates: estimatesResult.data || [],
+      },
     };
   } catch (error) {
     console.error("getProjectByIdAction error:", error);
@@ -134,6 +144,16 @@ export async function createProjectAction(data: z.infer<typeof createProjectSche
     const service = new ProjectService(context);
 
     const project = await service.createProject(validated);
+
+    // Log to audit trail
+    await auditLog({
+      action: "PROJECT_CREATED",
+      entity: "Project",
+      entityId: project.id,
+      userId: context.userId,
+      tenantId: context.tenantId,
+      metadata: { name: project.name },
+    });
 
     revalidatePath("/projects");
 
@@ -164,6 +184,16 @@ export async function updateProjectAction(
 
     const project = await service.updateProject(id, validated);
 
+    // Log to audit trail
+    await auditLog({
+      action: "PROJECT_UPDATED",
+      entity: "Project",
+      entityId: project.id,
+      userId: context.userId,
+      tenantId: context.tenantId,
+      metadata: { name: project.name, status: project.status },
+    });
+
     revalidatePath("/projects");
     revalidatePath(`/projects/${id}`);
 
@@ -188,7 +218,17 @@ export async function archiveProjectAction(id: string) {
     const context = await getCurrentContext();
     const service = new ProjectService(context);
 
-    await service.deleteProject(id);
+    const project = await service.deleteProject(id);
+
+    // Log to audit trail
+    await auditLog({
+      action: "PROJECT_ARCHIVED",
+      entity: "Project",
+      entityId: project.id,
+      userId: context.userId,
+      tenantId: context.tenantId,
+      metadata: { name: project.name },
+    });
 
     revalidatePath("/projects");
 
@@ -239,6 +279,16 @@ export async function restoreProjectAction(id: string) {
     const service = new ProjectService(context);
 
     const project = await service.restoreProject(id);
+
+    // Log to audit trail
+    await auditLog({
+      action: "PROJECT_RESTORED",
+      entity: "Project",
+      entityId: project.id,
+      userId: context.userId,
+      tenantId: context.tenantId,
+      metadata: { name: project.name },
+    });
 
     revalidatePath("/projects");
     revalidatePath(`/projects/${id}`);
