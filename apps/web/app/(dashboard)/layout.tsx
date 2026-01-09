@@ -5,13 +5,14 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { DevDemoSwitcher } from "@/components/dev-demo-switcher";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const showDevTools = process.env.NODE_ENV !== "production";
-  const cookieRole = showDevTools ? cookies().get("demo_role")?.value : undefined;
+  const cookieStore = showDevTools ? await cookies() : undefined;
+  const cookieRole = cookieStore?.get("demo_role")?.value;
   const roleLabel =
     cookieRole === "pm" ? "PM" : cookieRole === "client" ? "Client" : "Owner";
 
