@@ -119,7 +119,20 @@ export async function getProjectByIdAction(id: string) {
       const estimatesResult = await estimateService.getEstimatesByProjectId(id, {
         limit: 100, // Get all estimates for this project
       });
-      estimates = estimatesResult.data || [];
+      const rawEstimates = estimatesResult.data || [];
+      const toNumber = (value: unknown) => {
+        if (value && typeof value === "object" && "toNumber" in value) {
+          return (value as { toNumber: () => number }).toNumber();
+        }
+        return Number(value);
+      };
+      estimates = rawEstimates.map((estimate: any) => ({
+        ...estimate,
+        totalCost: toNumber(estimate.totalCost),
+        totalClient: toNumber(estimate.totalClient),
+        margin: toNumber(estimate.margin),
+        marginPercent: toNumber(estimate.marginPercent),
+      }));
     } catch (estimateError) {
       console.warn("Failed to load estimates for project:", estimateError);
       // Continue without estimates rather than failing the whole request
