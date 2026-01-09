@@ -2,12 +2,19 @@
 // Layout with navigation for authenticated users
 
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { DevDemoSwitcher } from "@/components/dev-demo-switcher";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const showDevTools = process.env.NODE_ENV !== "production";
+  const cookieRole = showDevTools ? cookies().get("demo_role")?.value : undefined;
+  const roleLabel =
+    cookieRole === "pm" ? "PM" : cookieRole === "client" ? "Client" : "Owner";
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -49,7 +56,7 @@ export default function DashboardLayout({
             {/* User Menu */}
             <div className="flex items-center gap-4">
               <div className="text-sm text-gray-600">
-                Demo User (Owner)
+                Demo User ({roleLabel})
               </div>
               <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-600 font-medium">
                 DU
@@ -61,6 +68,7 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <main>{children}</main>
+      {showDevTools && <DevDemoSwitcher />}
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-12">

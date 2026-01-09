@@ -127,6 +127,11 @@ npm run dev -w @buildos/web        # Dev только web app
 npm run build -w @buildos/web      # Build только web app
 ```
 
+### Demo Login (dev only)
+
+Use the floating "Demo Login" panel (bottom-right) on dev/staging to switch
+between Owner/PM/Client roles. This is disabled in production.
+
 ---
 
 ## 🔐 Environment Variables
