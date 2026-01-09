@@ -115,6 +115,7 @@ export async function getProjectByIdAction(id: string) {
 
     const serializeDate = (value: Date | null | undefined) =>
       value ? value.toISOString() : null;
+    const sanitize = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 
     // Load estimates for this project
     let estimates: any[] = [];
@@ -142,6 +143,7 @@ export async function getProjectByIdAction(id: string) {
         updatedAt: serializeDate(estimate.updatedAt),
         deletedAt: serializeDate(estimate.deletedAt),
       }));
+      estimates = sanitize(estimates);
     } catch (estimateError) {
       console.warn("Failed to load estimates for project:", estimateError);
       // Continue without estimates rather than failing the whole request
@@ -157,7 +159,7 @@ export async function getProjectByIdAction(id: string) {
     return {
       success: true,
       data: {
-        project: serializedProject,
+        project: sanitize(serializedProject),
         estimates,
       },
     };
