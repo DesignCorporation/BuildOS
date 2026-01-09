@@ -27,6 +27,8 @@ export default async function ClientEstimatePage({ params }: PageProps) {
       version: true,
       status: true,
       createdAt: true,
+      sentAt: true,
+      approvedAt: true,
       pdfUrl: true,
       pdfGeneratedAt: true,
       totalClient: true, // ✅ Client sees this
@@ -104,9 +106,17 @@ export default async function ClientEstimatePage({ params }: PageProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "sent":
-        return <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Отправлено</span>;
+        return (
+          <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+            Отправлено
+          </span>
+        );
       case "approved":
-        return <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">Утверждено</span>;
+        return (
+          <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+            Утверждено
+          </span>
+        );
       default:
         return <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">{status}</span>;
     }
@@ -131,8 +141,14 @@ export default async function ClientEstimatePage({ params }: PageProps) {
                 </p>
               )}
             </div>
-            <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-col items-end gap-2 text-sm text-gray-600">
               {getStatusBadge(estimate.status)}
+              {estimate.status === "approved" && estimate.approvedAt && (
+                <div>Утверждено: {formatDate(estimate.approvedAt)}</div>
+              )}
+              {estimate.status === "sent" && estimate.sentAt && (
+                <div>Отправлено: {formatDate(estimate.sentAt)}</div>
+              )}
             </div>
           </div>
         </div>
@@ -243,6 +259,14 @@ export default async function ClientEstimatePage({ params }: PageProps) {
             )}
           </div>
         )}
+
+        {/* Contact Manager */}
+        <div className="border-t border-gray-200 px-8 py-6">
+          <p className="text-sm text-gray-700 font-medium mb-2">Контакт менеджера</p>
+          <p className="text-sm text-gray-600">
+            Demo placeholder: contact@anchor-construction.pl, +48 500 000 000
+          </p>
+        </div>
 
         {/* Footer */}
         <div className="border-t border-gray-200 px-8 py-4 bg-gray-50">

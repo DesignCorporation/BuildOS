@@ -10,6 +10,7 @@ import {
   archiveProjectAction,
   restoreProjectAction,
 } from "@/app/actions/projects";
+import { sendEstimateAction } from "@/app/actions/estimates";
 
 interface Project {
   id: string;
@@ -52,6 +53,10 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
   const [activeTab, setActiveTab] = useState<TabName>("details");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [sendingEstimateId, setSendingEstimateId] = useState<string | null>(null);
+  const latestDraft = estimates
+    .filter((estimate) => estimate.status === "draft")
+    .sort((a, b) => b.version - a.version)[0];
 
   const isArchived = project.deletedAt !== null && project.deletedAt !== undefined;
 
@@ -83,6 +88,15 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
       await restoreProjectAction(projectId);
     } finally {
       setIsArchiving(false);
+    }
+  };
+
+  const handleSendEstimate = async (estimateId: string) => {
+    setSendingEstimateId(estimateId);
+    try {
+      await sendEstimateAction(estimateId);
+    } finally {
+      setSendingEstimateId(null);
     }
   };
 
@@ -192,6 +206,18 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
               >
                 Редактировать
               </button>
+
+              {latestDraft && (
+                <button
+                  onClick={() => handleSendEstimate(latestDraft.id)}
+                  disabled={sendingEstimateId === latestDraft.id}
+                  className="bg-white text-blue-600 border border-blue-200 px-4 py-2 rounded hover:bg-blue-50 transition-colors disabled:text-gray-400 disabled:border-gray-200"
+                >
+                  {sendingEstimateId === latestDraft.id
+                    ? "Отправка..."
+                    : "Send estimate to client"}
+                </button>
+              )}
 
               {!isArchived && (
                 <button
@@ -322,12 +348,25 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
                           {new Date(estimate.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <Link
-                            href={`/projects/${projectId}/estimates/${estimate.id}`}
-                            className="text-blue-600 hover:text-blue-800 text-sm"
-                          >
-                            View →
-                          </Link>
+                          <div className="flex items-center justify-end gap-3">
+                            {estimate.status === "draft" && (
+                              <button
+                                onClick={() => handleSendEstimate(estimate.id)}
+                                disabled={sendingEstimateId === estimate.id}
+                                className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+                              >
+                                {sendingEstimateId === estimate.id
+                                  ? "Sending..."
+                                  : "Send to client"}
+                              </button>
+                            )}
+                            <Link
+                              href={`/projects/${projectId}/estimates/${estimate.id}`}
+                              className="text-blue-600 hover:text-blue-800 text-sm"
+                            >
+                              View →
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))}

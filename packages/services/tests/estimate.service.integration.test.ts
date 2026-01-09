@@ -173,6 +173,44 @@ describe("EstimateService - Integration Tests", () => {
     });
   });
 
+  describe("status updates", () => {
+    it("should send estimate and set sentAt", async () => {
+      const estimate = await service.createEstimateWithItems(projectId, [
+        {
+          type: "work",
+          name: "Work 1",
+          unit: "m2",
+          quantity: 10,
+          unitCost: 100,
+          unitClient: 150,
+        },
+      ]);
+
+      const sentEstimate = await service.sendEstimate(estimate.id);
+
+      expect(sentEstimate.status).toBe("sent");
+      expect(sentEstimate.sentAt).toBeInstanceOf(Date);
+    });
+
+    it("should approve estimate and set approvedAt", async () => {
+      const estimate = await service.createEstimateWithItems(projectId, [
+        {
+          type: "work",
+          name: "Work 1",
+          unit: "m2",
+          quantity: 10,
+          unitCost: 100,
+          unitClient: 150,
+        },
+      ]);
+
+      const approvedEstimate = await service.approveEstimate(estimate.id);
+
+      expect(approvedEstimate.status).toBe("approved");
+      expect(approvedEstimate.approvedAt).toBeInstanceOf(Date);
+    });
+  });
+
   describe("updateItem", () => {
     it("should update item and recalculate estimate totals", async () => {
       const estimate = await service.createEstimateWithItems(projectId, [

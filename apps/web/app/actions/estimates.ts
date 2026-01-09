@@ -223,6 +223,8 @@ export async function sendEstimateAction(estimateId: string) {
 
     // Revalidate
     revalidatePath(`/estimates/${estimateId}`);
+    revalidatePath(`/projects/${estimate.projectId}`);
+    revalidatePath("/projects");
 
     return {
       success: true,

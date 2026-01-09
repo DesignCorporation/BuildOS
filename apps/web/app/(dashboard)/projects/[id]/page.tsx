@@ -21,6 +21,19 @@ export default async function ProjectPage({ params }: PageProps) {
   }
 
   const { project, estimates } = result.data;
+  const totalEstimates = estimates.length;
+  const totalAmount = estimates.reduce(
+    (sum, estimate) => sum + Number(estimate.totalClient || 0),
+    0
+  );
+  const approvedAmount = estimates.reduce(
+    (sum, estimate) =>
+      estimate.status === "approved" ? sum + Number(estimate.totalClient || 0) : sum,
+    0
+  );
+  const lastEstimateDate = estimates
+    .map((estimate) => new Date(estimate.createdAt))
+    .sort((a, b) => b.getTime() - a.getTime())[0];
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
@@ -129,6 +142,28 @@ export default async function ProjectPage({ params }: PageProps) {
             )}
           </div>
         )}
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-lg shadow p-4">
+          <p className="text-sm text-gray-600">Total estimates</p>
+          <p className="text-2xl font-semibold text-gray-900">{totalEstimates}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <p className="text-sm text-gray-600">Approved / Total</p>
+          <p className="text-2xl font-semibold text-gray-900">
+            {approvedAmount.toFixed(2)} / {totalAmount.toFixed(2)} PLN
+          </p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <p className="text-sm text-gray-600">Last estimate</p>
+          <p className="text-2xl font-semibold text-gray-900">
+            {lastEstimateDate
+              ? lastEstimateDate.toLocaleDateString()
+              : "—"}
+          </p>
+        </div>
       </div>
 
       {/* Tabs */}
