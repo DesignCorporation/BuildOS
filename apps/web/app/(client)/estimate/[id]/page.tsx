@@ -66,13 +66,13 @@ export default async function ClientEstimatePage({ params }: PageProps) {
   }
 
   // Format date
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("ru-RU", {
+  const formatDate = (date: Date) =>
+    new Intl.DateTimeFormat("pl-PL", {
       year: "numeric",
       month: "long",
       day: "numeric",
+      timeZone: "Europe/Warsaw",
     }).format(date);
-  };
 
   // Format currency
   const formatCurrency = (amount: number | string | { toNumber(): number }) => {
@@ -85,18 +85,24 @@ export default async function ClientEstimatePage({ params }: PageProps) {
       // Prisma Decimal type
       num = amount.toNumber();
     }
-    return `${num.toFixed(2)} PLN`;
+    return new Intl.NumberFormat("pl-PL", {
+      style: "currency",
+      currency: "PLN",
+      currencyDisplay: "code",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
   };
 
   // Get type label
   const getTypeLabel = (type: string) => {
     switch (type) {
       case "work":
-        return "Работа";
+        return "Labor";
       case "material":
-        return "Материал";
+        return "Materials";
       case "subcontractor":
-        return "Субподряд";
+        return "Subcontractor";
       default:
         return type;
     }
@@ -108,17 +114,21 @@ export default async function ClientEstimatePage({ params }: PageProps) {
       case "sent":
         return (
           <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-            Отправлено
+            Sent
           </span>
         );
       case "approved":
         return (
           <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-            Утверждено
+            Approved
           </span>
         );
       default:
-        return <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">{status}</span>;
+        return (
+          <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -130,24 +140,24 @@ export default async function ClientEstimatePage({ params }: PageProps) {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Смета {estimate.project.name ? `на проект "${estimate.project.name}"` : ""}
+                Estimate {estimate.project.name ? `for "${estimate.project.name}"` : ""}
               </h1>
               <p className="text-gray-600">
-                Версия {estimate.version} • {formatDate(estimate.createdAt)}
+                Version {estimate.version} • {formatDate(estimate.createdAt)}
               </p>
               {estimate.project.address && (
                 <p className="text-gray-600 mt-1">
-                  Адрес: {estimate.project.address}
+                  Address: {estimate.project.address}
                 </p>
               )}
             </div>
             <div className="flex flex-col items-end gap-2 text-sm text-gray-600">
               {getStatusBadge(estimate.status)}
               {estimate.status === "approved" && estimate.approvedAt && (
-                <div>Утверждено: {formatDate(estimate.approvedAt)}</div>
+                <div>Approved: {formatDate(estimate.approvedAt)}</div>
               )}
               {estimate.status === "sent" && estimate.sentAt && (
-                <div>Отправлено: {formatDate(estimate.sentAt)}</div>
+                <div>Sent: {formatDate(estimate.sentAt)}</div>
               )}
             </div>
           </div>
@@ -155,28 +165,28 @@ export default async function ClientEstimatePage({ params }: PageProps) {
 
         {/* Items Table */}
         <div className="px-8 py-6">
-          <h2 className="text-xl font-semibold mb-4">Состав работ</h2>
+          <h2 className="text-xl font-semibold mb-4">Scope of Work</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    №
+                    #
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Наименование
+                    Item
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Тип
+                    Type
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Количество
+                    Quantity
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Цена за ед.
+                    Unit Price
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Итого
+                    Total
                   </th>
                 </tr>
               </thead>
@@ -220,7 +230,7 @@ export default async function ClientEstimatePage({ params }: PageProps) {
           <div className="flex justify-end">
             <div className="w-64">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-600">Итого:</span>
+                <span className="text-gray-600">Total:</span>
                 <span className="text-2xl font-bold text-gray-900">
                   {formatCurrency(estimate.totalClient)}
                 </span>
@@ -250,11 +260,11 @@ export default async function ClientEstimatePage({ params }: PageProps) {
                   d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              Скачать PDF
+              Download PDF
             </a>
             {estimate.pdfGeneratedAt && (
               <p className="text-sm text-gray-500 mt-2">
-                PDF сгенерирован: {formatDate(estimate.pdfGeneratedAt)}
+                PDF generated: {formatDate(estimate.pdfGeneratedAt)}
               </p>
             )}
           </div>
@@ -262,7 +272,7 @@ export default async function ClientEstimatePage({ params }: PageProps) {
 
         {/* Contact Manager */}
         <div className="border-t border-gray-200 px-8 py-6">
-          <p className="text-sm text-gray-700 font-medium mb-2">Контакт менеджера</p>
+          <p className="text-sm text-gray-700 font-medium mb-2">Contact Manager</p>
           <p className="text-sm text-gray-600">
             Demo placeholder: contact@anchor-construction.pl, +48 500 000 000
           </p>
@@ -271,7 +281,7 @@ export default async function ClientEstimatePage({ params }: PageProps) {
         {/* Footer */}
         <div className="border-t border-gray-200 px-8 py-4 bg-gray-50">
           <p className="text-sm text-gray-500 text-center">
-            Если у вас есть вопросы по смете, свяжитесь с нами
+            If you have any questions about this estimate, contact us
           </p>
         </div>
       </div>

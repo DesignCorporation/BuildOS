@@ -52,6 +52,28 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
     return badges[status] || "bg-gray-100 text-gray-800";
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: "Draft",
+      active: "Active",
+      completed: "Completed",
+      archived: "Archived",
+    };
+    return labels[status] || status;
+  };
+
+  const formatDate = (value?: string | Date | null) => {
+    if (!value) {
+      return "—";
+    }
+    return new Intl.DateTimeFormat("pl-PL", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone: "Europe/Warsaw",
+    }).format(new Date(value));
+  };
+
   return (
     <div className="container mx-auto py-8">
       {/* Header */}
@@ -123,7 +145,7 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full table-fixed divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -155,10 +177,16 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
                       {project.name}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td
+                    className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate"
+                    title={project.clientName || "-"}
+                  >
                     {project.clientName || "-"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td
+                    className="px-6 py-4 text-sm text-gray-600 max-w-[280px] truncate"
+                    title={project.address || "-"}
+                  >
                     {project.address || "-"}
                   </td>
                   <td className="px-6 py-4">
@@ -167,11 +195,11 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
                         project.status
                       )}`}
                     >
-                      {project.status}
+                      {getStatusLabel(project.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    {new Date(project.createdAt).toLocaleDateString()}
+                    {formatDate(project.createdAt)}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <Link

@@ -13,9 +13,9 @@ export default async function NewEstimatePage({ params }: PageProps) {
   return (
     <div className="container mx-auto py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Создать смету</h1>
+        <h1 className="text-3xl font-bold">Create Estimate</h1>
         <p className="text-gray-600 mt-2">
-          Добавьте работы, материалы и субподряд
+          Add labor, materials, and subcontractors
         </p>
       </div>
 

@@ -60,6 +60,41 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
 
   const isArchived = project.deletedAt !== null && project.deletedAt !== undefined;
 
+  const formatDate = (value?: Date | string | null) => {
+    if (!value) {
+      return "—";
+    }
+    return new Intl.DateTimeFormat("pl-PL", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone: "Europe/Warsaw",
+    }).format(new Date(value));
+  };
+
+  const toNumber = (value: number | { toString(): string }) => {
+    if (typeof value === "number") {
+      return value;
+    }
+    const parsed = Number(value.toString());
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const formatCurrency = (value: number | { toString(): string }) =>
+    new Intl.NumberFormat("pl-PL", {
+      style: "currency",
+      currency: "PLN",
+      currencyDisplay: "code",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(toNumber(value));
+
+  const formatPercent = (value: number | { toString(): string }) =>
+    new Intl.NumberFormat("pl-PL", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(toNumber(value));
+
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
       draft: "bg-gray-100 text-gray-800",
@@ -70,8 +105,28 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
     return badges[status] || "bg-gray-100 text-gray-800";
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: "Draft",
+      sent: "Sent",
+      approved: "Approved",
+      rejected: "Rejected",
+    };
+    return labels[status] || status;
+  };
+
+  const getProjectStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: "Draft",
+      active: "Active",
+      completed: "Completed",
+      archived: "Archived",
+    };
+    return labels[status] || status;
+  };
+
   const handleArchive = async () => {
-    if (!confirm("Вы уверены, что хотите заархивировать этот проект?")) {
+    if (!confirm("Are you sure you want to archive this project?")) {
       return;
     }
     setIsArchiving(true);
@@ -155,16 +210,14 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status
                   </label>
-                  <p className="text-gray-900 capitalize">{project.status}</p>
+                  <p className="text-gray-900">{getProjectStatusLabel(project.status)}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Created
                   </label>
-                  <p className="text-gray-900">
-                    {new Date(project.createdAt).toLocaleDateString()}
-                  </p>
+                  <p className="text-gray-900">{formatDate(project.createdAt)}</p>
                 </div>
               </div>
 
@@ -204,7 +257,7 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
                 disabled={isArchived}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                Редактировать
+                Edit Project
               </button>
 
               {latestDraft && (
@@ -214,7 +267,7 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
                   className="bg-white text-blue-600 border border-blue-200 px-4 py-2 rounded hover:bg-blue-50 transition-colors disabled:text-gray-400 disabled:border-gray-200"
                 >
                   {sendingEstimateId === latestDraft.id
-                    ? "Отправка..."
+                    ? "Sending..."
                     : "Send estimate to client"}
                 </button>
               )}
@@ -225,7 +278,7 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
                   disabled={isArchiving}
                   className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  {isArchiving ? "Архивирование..." : "Заархивировать"}
+                  {isArchiving ? "Archiving..." : "Archive"}
                 </button>
               )}
 
@@ -235,7 +288,7 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
                   disabled={isArchiving}
                   className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  {isArchiving ? "Восстановление..." : "Восстановить"}
+                  {isArchiving ? "Restoring..." : "Restore"}
                 </button>
               )}
             </div>
@@ -324,28 +377,28 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
                               estimate.status
                             )}`}
                           >
-                            {estimate.status}
+                            {getStatusLabel(estimate.status)}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          ${Number(estimate.totalCost).toFixed(2)}
+                          {formatCurrency(estimate.totalCost)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          ${Number(estimate.totalClient).toFixed(2)}
+                          {formatCurrency(estimate.totalClient)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <span
                             className={
-                              Number(estimate.margin) >= 0
+                              toNumber(estimate.margin) >= 0
                                 ? "text-green-600 font-medium"
                                 : "text-red-600 font-medium"
                             }
                           >
-                            ${Number(estimate.margin).toFixed(2)} ({Number(estimate.marginPercent).toFixed(1)}%)
+                            {formatCurrency(estimate.margin)} ({formatPercent(estimate.marginPercent)}%)
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {new Date(estimate.createdAt).toLocaleDateString()}
+                          {formatDate(estimate.createdAt)}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-3">

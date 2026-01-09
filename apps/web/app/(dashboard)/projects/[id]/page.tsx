@@ -35,6 +35,27 @@ export default async function ProjectPage({ params }: PageProps) {
     .map((estimate) => new Date(estimate.createdAt))
     .sort((a, b) => b.getTime() - a.getTime())[0];
 
+  const formatDate = (value?: Date | string | null) => {
+    if (!value) {
+      return "—";
+    }
+    return new Intl.DateTimeFormat("pl-PL", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone: "Europe/Warsaw",
+    }).format(new Date(value));
+  };
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pl-PL", {
+      style: "currency",
+      currency: "PLN",
+      currencyDisplay: "code",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
       draft: "bg-gray-100 text-gray-800",
@@ -43,6 +64,16 @@ export default async function ProjectPage({ params }: PageProps) {
       archived: "bg-yellow-100 text-yellow-800",
     };
     return badges[status] || "bg-gray-100 text-gray-800";
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: "Draft",
+      active: "Active",
+      completed: "Completed",
+      archived: "Archived",
+    };
+    return labels[status] || status;
   };
 
   return (
@@ -111,7 +142,7 @@ export default async function ProjectPage({ params }: PageProps) {
               project.status
             )}`}
           >
-            {project.status}
+            {getStatusLabel(project.status)}
           </span>
         </div>
 
@@ -153,15 +184,13 @@ export default async function ProjectPage({ params }: PageProps) {
         <div className="bg-white rounded-lg shadow p-4">
           <p className="text-sm text-gray-600">Approved / Total</p>
           <p className="text-2xl font-semibold text-gray-900">
-            {approvedAmount.toFixed(2)} / {totalAmount.toFixed(2)} PLN
+            {formatCurrency(approvedAmount)} / {formatCurrency(totalAmount)}
           </p>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <p className="text-sm text-gray-600">Last estimate</p>
           <p className="text-2xl font-semibold text-gray-900">
-            {lastEstimateDate
-              ? lastEstimateDate.toLocaleDateString()
-              : "—"}
+            {lastEstimateDate ? formatDate(lastEstimateDate) : "—"}
           </p>
         </div>
       </div>

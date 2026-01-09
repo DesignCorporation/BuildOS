@@ -25,12 +25,12 @@ interface ProjectEditModalProps {
 }
 
 const updateProjectSchema = z.object({
-  name: z.string().min(1, "Имя проекта обязательно"),
+  name: z.string().min(1, "Project name is required"),
   address: z.string().optional(),
   clientName: z.string().optional(),
   clientEmail: z
     .string()
-    .email("Некорректный email")
+    .email("Invalid email address")
     .optional()
     .or(z.literal("")),
   clientPhone: z.string().optional(),
@@ -77,10 +77,10 @@ export function ProjectEditModal({
     setIsSubmitting(true);
 
     try {
-      // Валидация Zod схемой
+      // Validate with Zod
       const validatedData = updateProjectSchema.parse(formData);
 
-      // Вызываем Server Action
+      // Call server action
       const result = await updateProjectAction(projectId, validatedData);
 
       if (result.success) {
@@ -88,15 +88,15 @@ export function ProjectEditModal({
         // Refresh the page to show updated data
         router.refresh();
       } else {
-        setError(result.error || "Ошибка при обновлении проекта");
+        setError(result.error || "Failed to update project");
       }
     } catch (err) {
       if (err instanceof z.ZodError) {
         const firstError = err.errors[0];
-        setError(firstError?.message || "Ошибка валидации");
+        setError(firstError?.message || "Validation error");
       } else {
         setError(
-          err instanceof Error ? err.message : "Неизвестная ошибка"
+          err instanceof Error ? err.message : "Unknown error"
         );
       }
     } finally {
@@ -121,7 +121,7 @@ export function ProjectEditModal({
         <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Редактировать проект</h2>
+            <h2 className="text-xl font-semibold">Edit Project</h2>
             <button
               onClick={onClose}
               disabled={isSubmitting}
@@ -142,7 +142,7 @@ export function ProjectEditModal({
             {/* Project Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Имя проекта <span className="text-red-500">*</span>
+                Project Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -158,7 +158,7 @@ export function ProjectEditModal({
             {/* Address */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Адрес
+                Address
               </label>
               <input
                 type="text"
@@ -174,7 +174,7 @@ export function ProjectEditModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Имя клиента
+                  Client Name
                 </label>
                 <input
                   type="text"
@@ -188,7 +188,7 @@ export function ProjectEditModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email клиента
+                  Client Email
                 </label>
                 <input
                   type="email"
@@ -204,7 +204,7 @@ export function ProjectEditModal({
             {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Телефон клиента
+                Client Phone
               </label>
               <input
                 type="tel"
@@ -219,7 +219,7 @@ export function ProjectEditModal({
             {/* Status */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Статус
+                Status
               </label>
               <select
                 name="status"
@@ -228,17 +228,17 @@ export function ProjectEditModal({
                 disabled={isSubmitting}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
               >
-                <option value="draft">Черновик</option>
-                <option value="active">Активный</option>
-                <option value="completed">Завершено</option>
-                <option value="archived">Архивирован</option>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="archived">Archived</option>
               </select>
             </div>
 
             {/* Notes */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Заметки
+                Notes
               </label>
               <textarea
                 name="notes"
@@ -258,14 +258,14 @@ export function ProjectEditModal({
                 disabled={isSubmitting}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Отмена
+                Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Сохранение..." : "Сохранить"}
+                {isSubmitting ? "Saving..." : "Save"}
               </button>
             </div>
           </form>

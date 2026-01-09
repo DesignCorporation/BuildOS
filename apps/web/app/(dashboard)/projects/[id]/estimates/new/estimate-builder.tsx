@@ -75,11 +75,19 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
   };
 
   const totals = calculateTotals();
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pl-PL", {
+      style: "currency",
+      currency: "PLN",
+      currencyDisplay: "code",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
 
   // Save as draft
   const handleSave = async () => {
     if (items.length === 0) {
-      setError("Добавьте хотя бы один элемент");
+      setError("Add at least one item");
       return;
     }
 
@@ -93,13 +101,13 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
       });
 
       if (result.success) {
-        setSuccess("Смета сохранена как черновик");
+        setSuccess("Estimate saved as draft");
         setItems([]);
       } else {
-        setError(result.error || "Ошибка при сохранении");
+        setError(result.error || "Failed to save estimate");
       }
     } catch (err) {
-      setError("Ошибка при сохранении сметы");
+      setError("Failed to save estimate");
     } finally {
       setIsSubmitting(false);
     }
@@ -108,7 +116,7 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
   // Save and send to client
   const handleSaveAndSend = async () => {
     if (items.length === 0) {
-      setError("Добавьте хотя бы один элемент");
+      setError("Add at least one item");
       return;
     }
 
@@ -123,7 +131,7 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
       });
 
       if (!createResult.success) {
-        setError(createResult.error || "Ошибка при сохранении");
+        setError(createResult.error || "Failed to save estimate");
         return;
       }
 
@@ -136,13 +144,13 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
       const sendResult = await sendEstimateAction(createResult.data.id);
 
       if (sendResult.success) {
-        setSuccess("Смета создана и отправлена клиенту");
+        setSuccess("Estimate created and sent to client");
         setItems([]);
       } else {
-        setError(sendResult.error || "Ошибка при отправке");
+        setError(sendResult.error || "Failed to send estimate");
       }
     } catch (err) {
-      setError("Ошибка при создании и отправке сметы");
+      setError("Failed to create and send estimate");
     } finally {
       setIsSubmitting(false);
     }
@@ -169,31 +177,31 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Тип
+                Type
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Название
+                Name
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Описание
+                Description
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Ед.
+                Unit
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Кол-во
+                Qty
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Себест.
+                Cost
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Клиент
+                Client
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Итого (С)
+                Total (Cost)
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Итого (К)
+                Total (Client)
               </th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -209,9 +217,9 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
                     }
                     className="w-full border rounded px-2 py-1 text-sm"
                   >
-                    <option value="work">Работа</option>
-                    <option value="material">Материал</option>
-                    <option value="subcontractor">Субподряд</option>
+                    <option value="work">Labor</option>
+                    <option value="material">Materials</option>
+                    <option value="subcontractor">Subcontractor</option>
                   </select>
                 </td>
                 <td className="px-4 py-2">
@@ -221,7 +229,7 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
                     onChange={(e) =>
                       updateItem(item.id, "name", e.target.value)
                     }
-                    placeholder="Название"
+                    placeholder="Name"
                     className="w-full border rounded px-2 py-1 text-sm"
                   />
                 </td>
@@ -232,7 +240,7 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
                     onChange={(e) =>
                       updateItem(item.id, "description", e.target.value)
                     }
-                    placeholder="Описание"
+                    placeholder="Description"
                     className="w-full border rounded px-2 py-1 text-sm"
                   />
                 </td>
@@ -243,7 +251,7 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
                     onChange={(e) =>
                       updateItem(item.id, "unit", e.target.value)
                     }
-                    placeholder="м2"
+                    placeholder="m2"
                     className="w-20 border rounded px-2 py-1 text-sm"
                   />
                 </td>
@@ -294,7 +302,7 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
                     onClick={() => deleteItem(item.id)}
                     className="text-red-600 hover:text-red-800 text-sm"
                   >
-                    Удалить
+                    Remove
                   </button>
                 </td>
               </tr>
@@ -304,7 +312,7 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
 
         {items.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            Нет элементов. Добавьте работы, материалы или субподряд.
+            No items yet. Add labor, materials, or subcontractors.
           </div>
         )}
       </div>
@@ -315,35 +323,35 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
           onClick={addItem}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
-          + Добавить элемент
+          + Add Item
         </button>
       </div>
 
       {/* Totals Summary */}
       {items.length > 0 && (
         <div className="bg-gray-50 rounded-lg p-6 space-y-2">
-          <h3 className="text-lg font-semibold mb-4">Итого</h3>
+          <h3 className="text-lg font-semibold mb-4">Totals</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Себестоимость:</p>
+              <p className="text-sm text-gray-600">Cost total:</p>
               <p className="text-xl font-bold text-gray-900">
-                {totals.totalCost.toFixed(2)} PLN
+                {formatCurrency(totals.totalCost)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Клиент (общая сумма):</p>
+              <p className="text-sm text-gray-600">Client total:</p>
               <p className="text-xl font-bold text-green-600">
-                {totals.totalClient.toFixed(2)} PLN
+                {formatCurrency(totals.totalClient)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Маржа:</p>
+              <p className="text-sm text-gray-600">Margin:</p>
               <p className="text-xl font-bold text-blue-600">
-                {totals.margin.toFixed(2)} PLN
+                {formatCurrency(totals.margin)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Маржа %:</p>
+              <p className="text-sm text-gray-600">Margin %:</p>
               <p className="text-xl font-bold text-blue-600">
                 {totals.marginPercent.toFixed(2)}%
               </p>
@@ -359,7 +367,7 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
           disabled={isSubmitting || items.length === 0}
           className="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? "Сохранение..." : "Сохранить черновик"}
+          {isSubmitting ? "Saving..." : "Save Draft"}
         </button>
 
         <button
@@ -367,7 +375,7 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
           disabled={isSubmitting || items.length === 0}
           className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? "Отправка..." : "Сохранить и отправить клиенту"}
+          {isSubmitting ? "Sending..." : "Save & Send to Client"}
         </button>
       </div>
     </div>
