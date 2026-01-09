@@ -59,7 +59,7 @@ services:
     container_name: buildos-web-dev
     restart: unless-stopped
     working_dir: /app
-    command: sh -c "if [ ! -x node_modules/.bin/next ]; then npm install; fi && npm --workspace @buildos/web run dev"
+    command: sh -c "if [ ! -x node_modules/.bin/next ]; then npm install; fi && npm --workspace packages/database run db:generate && npm --workspace @buildos/web run dev"
     environment:
       NODE_ENV: development
       CHOKIDAR_USEPOLLING: "true"
