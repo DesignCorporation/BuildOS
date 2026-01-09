@@ -113,6 +113,9 @@ export async function getProjectByIdAction(id: string) {
       };
     }
 
+    const serializeDate = (value: Date | null | undefined) =>
+      value ? value.toISOString() : null;
+
     // Load estimates for this project
     let estimates: any[] = [];
     try {
@@ -132,16 +135,29 @@ export async function getProjectByIdAction(id: string) {
         totalClient: toNumber(estimate.totalClient),
         margin: toNumber(estimate.margin),
         marginPercent: toNumber(estimate.marginPercent),
+        validUntil: serializeDate(estimate.validUntil),
+        sentAt: serializeDate(estimate.sentAt),
+        approvedAt: serializeDate(estimate.approvedAt),
+        createdAt: serializeDate(estimate.createdAt),
+        updatedAt: serializeDate(estimate.updatedAt),
+        deletedAt: serializeDate(estimate.deletedAt),
       }));
     } catch (estimateError) {
       console.warn("Failed to load estimates for project:", estimateError);
       // Continue without estimates rather than failing the whole request
     }
 
+    const serializedProject = {
+      ...project,
+      createdAt: serializeDate(project.createdAt),
+      updatedAt: serializeDate(project.updatedAt),
+      deletedAt: serializeDate(project.deletedAt),
+    };
+
     return {
       success: true,
       data: {
-        project,
+        project: serializedProject,
         estimates,
       },
     };
