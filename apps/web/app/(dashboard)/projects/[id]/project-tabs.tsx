@@ -22,9 +22,9 @@ interface Project {
   status: string;
   notes?: string | null;
   tags?: string[];
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date | null;
+  createdAt: Date | string | null;
+  updatedAt: Date | string | null;
+  deletedAt?: Date | string | null;
 }
 
 interface Estimate {
@@ -36,9 +36,9 @@ interface Estimate {
   totalClient: number | { toString(): string };
   margin: number | { toString(): string };
   marginPercent: number | { toString(): string };
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date | null;
+  createdAt: Date | string | null;
+  updatedAt: Date | string | null;
+  deletedAt?: Date | string | null;
 }
 
 interface ProjectTabsProps {
