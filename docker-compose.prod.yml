@@ -69,6 +69,7 @@ services:
       MINIO_PORT: 9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: https://buildos.designcorp.eu
       PDF_STORAGE_DIR: /app/storage/pdfs

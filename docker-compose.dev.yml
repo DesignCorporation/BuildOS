@@ -71,6 +71,7 @@ services:
       MINIO_PORT: 9000
       MINIO_ACCESS_KEY: buildos
       MINIO_SECRET_KEY: buildos_minio_dev
+      MINIO_PUBLIC_URL: http://localhost:9002
       PDF_STORAGE_DIR: /tmp/buildos-pdfs
     volumes:
       - ./:/app

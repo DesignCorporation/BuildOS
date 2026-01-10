@@ -51,6 +51,11 @@ async function main() {
     { resource: "stages", action: "update", description: "Update stages" },
     { resource: "stages", action: "delete", description: "Delete stages" },
 
+    // Photos
+    { resource: "photos", action: "view", description: "View project photos" },
+    { resource: "photos", action: "create", description: "Upload project photos" },
+    { resource: "photos", action: "delete", description: "Delete project photos" },
+
     // Users (admin)
     { resource: "users", action: "view", description: "View users" },
     { resource: "users", action: "create", description: "Create users" },
@@ -192,7 +197,8 @@ async function main() {
       p.resource === "projects" && p.action === "view" || // Can only VIEW projects
       p.resource === "estimates" && p.action === "view" || // Can only VIEW estimates (NOT view_cost)
       p.resource === "rooms" && p.action === "view" || // Can only VIEW rooms
-      p.resource === "stages" && p.action === "view" // Can only VIEW stages
+      p.resource === "stages" && p.action === "view" || // Can only VIEW stages
+      p.resource === "photos" && p.action === "view" // Can only VIEW photos
   );
 
   await Promise.all(
@@ -397,7 +403,8 @@ async function main() {
       (p.resource === "projects" && p.action === "view") ||
       (p.resource === "estimates" && p.action === "view") ||
       (p.resource === "rooms" && p.action === "view") ||
-      (p.resource === "stages" && p.action === "view")
+      (p.resource === "stages" && p.action === "view") ||
+      (p.resource === "photos" && p.action === "view")
   );
 
   await Promise.all(

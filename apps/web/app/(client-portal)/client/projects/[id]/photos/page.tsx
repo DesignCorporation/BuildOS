@@ -24,7 +24,8 @@ export default async function ClientProjectPhotosPage({ params }: PageProps) {
     "projects",
     "view"
   );
-  if (!canViewProjects) {
+  const canViewPhotos = await hasPermission(user.id, context, "photos", "view");
+  if (!canViewProjects || !canViewPhotos) {
     redirect("/client/unauthorized");
   }
 

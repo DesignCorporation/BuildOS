@@ -3,7 +3,7 @@
 // BuildOS - Project Tabs Component
 // Client component for tab navigation
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ProjectEditModal } from "./project-edit-modal";
 import {
@@ -11,6 +11,8 @@ import {
   restoreProjectAction,
 } from "@/app/actions/projects";
 import { sendEstimateAction } from "@/app/actions/estimates";
+import { createPhotoAction } from "@/app/actions/photos";
+import { useRouter } from "next/navigation";
 
 interface Project {
   id: string;
@@ -84,10 +86,21 @@ export function ProjectTabs({
   photos = [],
   canViewCost = true,
 }: ProjectTabsProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabName>("details");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [sendingEstimateId, setSendingEstimateId] = useState<string | null>(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
+  const [isPhotoSubmitting, startPhotoSubmit] = useTransition();
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoSuccess, setPhotoSuccess] = useState<string | null>(null);
+  const [photoForm, setPhotoForm] = useState({
+    stageId: "",
+    description: "",
+    capturedAt: "",
+  });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const latestDraft = estimates
     .filter((estimate) => estimate.status === "draft")
     .sort((a, b) => b.version - a.version)[0];
@@ -105,6 +118,42 @@ export function ProjectTabs({
       year: "numeric",
       timeZone: "Europe/Warsaw",
     }).format(new Date(value));
+  };
+
+  const handleCreatePhoto = () => {
+    setPhotoError(null);
+    setPhotoSuccess(null);
+
+    if (!photoFile) {
+      setPhotoError("Photo file is required");
+      return;
+    }
+
+    startPhotoSubmit(async () => {
+      const formData = new FormData();
+      formData.append("projectId", projectId);
+      if (photoForm.stageId) {
+        formData.append("stageId", photoForm.stageId);
+      }
+      if (photoForm.description.trim()) {
+        formData.append("description", photoForm.description.trim());
+      }
+      if (photoForm.capturedAt) {
+        formData.append("capturedAt", photoForm.capturedAt);
+      }
+      formData.append("file", photoFile);
+
+      const result = await createPhotoAction(formData);
+
+      if (result.success) {
+        setPhotoSuccess("Photo added");
+        setPhotoForm({ stageId: "", description: "", capturedAt: "" });
+        setPhotoFile(null);
+        router.refresh();
+      } else {
+        setPhotoError(result.error || "Failed to add photo");
+      }
+    });
   };
 
   const toNumber = (value: number | { toString(): string }) => {
@@ -240,7 +289,8 @@ export function ProjectTabs({
   ];
 
   return (
-    <div>
+    <>
+      <div>
       {/* Tab Headers */}
       <div className="border-b border-gray-200 mb-6">
         <div className="flex gap-8">
@@ -584,7 +634,70 @@ export function ProjectTabs({
 
         {activeTab === "photos" && (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-6">Photo Timeline</h2>
+            <div className="flex flex-col gap-2 mb-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Photo Timeline</h2>
+              </div>
+              <div className="grid gap-3 md:grid-cols-4">
+                <select
+                  value={photoForm.stageId}
+                  onChange={(event) =>
+                    setPhotoForm((prev) => ({ ...prev, stageId: event.target.value }))
+                  }
+                  className="border rounded px-3 py-2 text-sm"
+                >
+                  <option value="">General (no stage)</option>
+                  {stages.map((stage) => (
+                    <option key={stage.id} value={stage.id}>
+                      {stage.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(event) => setPhotoFile(event.target.files?.[0] || null)}
+                  className="border rounded px-3 py-2 text-sm"
+                />
+                <input
+                  type="date"
+                  value={photoForm.capturedAt}
+                  onChange={(event) =>
+                    setPhotoForm((prev) => ({
+                      ...prev,
+                      capturedAt: event.target.value,
+                    }))
+                  }
+                  className="border rounded px-3 py-2 text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="Description (optional)"
+                  value={photoForm.description}
+                  onChange={(event) =>
+                    setPhotoForm((prev) => ({
+                      ...prev,
+                      description: event.target.value,
+                    }))
+                  }
+                  className="border rounded px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleCreatePhoto}
+                  disabled={isPhotoSubmitting}
+                  className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 disabled:bg-gray-400"
+                >
+                  {isPhotoSubmitting ? "Uploading..." : "Add photo"}
+                </button>
+                {photoError && <span className="text-sm text-red-600">{photoError}</span>}
+                {photoSuccess && (
+                  <span className="text-sm text-green-600">{photoSuccess}</span>
+                )}
+              </div>
+            </div>
 
             {photos.length === 0 ? (
               <div className="text-center py-12 text-gray-600">
@@ -606,28 +719,44 @@ export function ProjectTabs({
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
                       {groupName}
                     </h3>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {groupPhotos.map((photo) => (
-                        <div
-                          key={photo.id}
-                          className="border border-gray-200 rounded-lg overflow-hidden bg-white"
-                        >
-                          <img
-                            src={photo.thumbnailUrl || photo.url}
-                            alt={photo.description || photo.filename}
-                            className="h-40 w-full object-cover"
-                            loading="lazy"
-                          />
-                          <div className="p-3">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {photo.description || photo.filename}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatDate(photo.capturedAt || photo.createdAt)}
-                            </p>
+                    <div className="space-y-4">
+                      {groupPhotos
+                        .slice()
+                        .sort(
+                          (a, b) =>
+                            new Date(a.capturedAt || a.createdAt || "").getTime() -
+                            new Date(b.capturedAt || b.createdAt || "").getTime()
+                        )
+                        .map((photo) => (
+                          <div
+                            key={photo.id}
+                            className="flex gap-4 items-start border border-gray-200 rounded-lg p-4 bg-white"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setLightboxPhoto(photo)}
+                              className="flex-shrink-0"
+                            >
+                              <img
+                                src={photo.thumbnailUrl || photo.url}
+                                alt={photo.description || photo.filename}
+                                className="h-28 w-40 object-cover rounded"
+                                loading="lazy"
+                              />
+                            </button>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {photo.description || photo.filename}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {formatDate(photo.capturedAt || photo.createdAt)}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {photo.stageName || "General"}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   </div>
                 ))}
@@ -644,6 +773,26 @@ export function ProjectTabs({
         project={project}
         projectId={projectId}
       />
-    </div>
+      </div>
+
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div className="max-w-4xl w-full" onClick={(event) => event.stopPropagation()}>
+            <img
+              src={lightboxPhoto.url}
+              alt={lightboxPhoto.description || lightboxPhoto.filename}
+              className="w-full h-auto rounded shadow-lg"
+            />
+            <div className="text-white text-sm mt-3">
+              {lightboxPhoto.description || lightboxPhoto.filename} •{" "}
+              {formatDate(lightboxPhoto.capturedAt || lightboxPhoto.createdAt)}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
