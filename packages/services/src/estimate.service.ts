@@ -339,6 +339,31 @@ export class EstimateService {
   }
 
   /**
+   * Get client-safe estimates for a project
+   * Only returns sent/approved and removes cost fields
+   */
+  async getClientEstimatesByProjectId(
+    projectId: string,
+    userId: string,
+    params?: { page?: number; limit?: number }
+  ) {
+    const canView = await this.userRepo.hasPermission(userId, "estimates", "view");
+    if (!canView) {
+      throw new Error("Access denied");
+    }
+
+    const result = await this.estimateRepo.findByProjectId(projectId, params);
+    const filtered = (result.data || [])
+      .filter((estimate) => estimate.status === "sent" || estimate.status === "approved")
+      .map((estimate) => this.estimateRepo.filterCostFields(estimate, false));
+
+    return {
+      ...result,
+      data: filtered,
+    };
+  }
+
+  /**
    * Send estimate to client (changes status to "sent")
    */
   async sendEstimate(estimateId: string): Promise<Estimate> {

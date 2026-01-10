@@ -79,6 +79,65 @@ export class ProjectRepository extends BaseRepository {
   }
 
   /**
+   * Find projects by client email (tenant-isolated)
+   */
+  async findByClientEmail(
+    clientEmail: string,
+    params?: PaginationParams & SoftDeleteFilter
+  ): Promise<PaginationResult<Project>> {
+    const { page = 1, limit = 10, includeDeleted = false } = params || {};
+    const skip = (page - 1) * limit;
+
+    const where = {
+      ...this.createBaseFilter(includeDeleted),
+      clientEmail,
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.project.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.project.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Find project by ID for a specific client email (tenant-isolated)
+   */
+  async findByIdForClient(
+    id: string,
+    clientEmail: string,
+    includeDeleted = false
+  ): Promise<Project | null> {
+    return this.prisma.project.findFirst({
+      where: {
+        id,
+        clientEmail,
+        ...this.createBaseFilter(includeDeleted),
+      },
+      include: {
+        rooms: {
+          where: this.createSoftDeleteFilter(includeDeleted),
+        },
+        estimates: {
+          where: this.createSoftDeleteFilter(includeDeleted),
+        },
+      },
+    });
+  }
+
+  /**
    * Create new project
    */
   async create(input: CreateProjectInput): Promise<Project> {

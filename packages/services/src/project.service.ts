@@ -37,6 +37,29 @@ export class ProjectService {
   }
 
   /**
+   * Get projects for a client by email
+   */
+  async getProjectsForClient(
+    clientEmail: string,
+    params?: PaginationParams
+  ): Promise<PaginationResult<Project>> {
+    if (!clientEmail || clientEmail.trim() === "") {
+      throw new Error("Client email is required");
+    }
+    return this.projectRepo.findByClientEmail(clientEmail, params);
+  }
+
+  /**
+   * Get project by ID for a specific client email
+   */
+  async getProjectForClient(id: string, clientEmail: string): Promise<Project | null> {
+    if (!clientEmail || clientEmail.trim() === "") {
+      throw new Error("Client email is required");
+    }
+    return this.projectRepo.findByIdForClient(id, clientEmail);
+  }
+
+  /**
    * Create new project
    */
   async createProject(input: CreateProjectInput): Promise<Project> {
