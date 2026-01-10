@@ -1,6 +1,7 @@
 // BuildOS - Client Projects List
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ProjectService } from "@buildos/services";
 import { hasPermission, requireClientContext } from "../lib/client-portal";
 
