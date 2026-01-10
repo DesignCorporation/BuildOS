@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EstimateService, PhotoService, ProjectService, StageService } from "@buildos/services";
-import { getClientContext, hasPermission } from "../../lib/client-portal";
+import { hasPermission, requireClientContext } from "../../lib/client-portal";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +13,7 @@ interface PageProps {
 
 export default async function ClientProjectPage({ params }: PageProps) {
   const { id } = await params;
-  const { context, user } = await getClientContext();
-  if (!user?.email) {
-    redirect("/client/unauthorized");
-  }
+  const { context, user } = await requireClientContext();
 
   const canViewProjects = await hasPermission(
     user.id,

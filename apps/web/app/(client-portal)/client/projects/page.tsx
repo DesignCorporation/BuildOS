@@ -1,17 +1,13 @@
 // BuildOS - Client Projects List
 
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ProjectService } from "@buildos/services";
-import { getClientContext, hasPermission } from "../lib/client-portal";
+import { hasPermission, requireClientContext } from "../lib/client-portal";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientProjectsPage() {
-  const { context, user } = await getClientContext();
-  if (!user?.email) {
-    redirect("/client/unauthorized");
-  }
+  const { context, user } = await requireClientContext();
 
   const canViewProjects = await hasPermission(
     user.id,
