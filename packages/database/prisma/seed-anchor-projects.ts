@@ -9,6 +9,8 @@ export async function seedAnchorProjects(
   tenantId: string
 ) {
   console.log("📦 Creating 7 ANCHOR projects with estimates and stages...\n");
+  const buildPhotoUrl = (seed: string) =>
+    `https://picsum.photos/seed/${encodeURIComponent(seed)}/800/600`;
   const existingP1 = await prisma.project.findFirst({
     where: { tenantId, name: 'Villa "Wilanów Heights"' },
     include: {
@@ -37,7 +39,7 @@ export async function seedAnchorProjects(
           projectId: existingP1.id,
           stageId: p1Foundation.id,
           filename: "foundation-1.jpg",
-          url: "https://via.placeholder.com/800x600?text=Foundation+Excavation",
+          url: buildPhotoUrl("foundation-1"),
           description: "Foundation excavation",
           capturedAt: new Date("2025-10-10"),
         });
@@ -45,7 +47,7 @@ export async function seedAnchorProjects(
           projectId: existingP1.id,
           stageId: p1Foundation.id,
           filename: "foundation-2.jpg",
-          url: "https://via.placeholder.com/800x600?text=Foundation+Footings",
+          url: buildPhotoUrl("foundation-2"),
           description: "Footings poured",
           capturedAt: new Date("2025-10-20"),
         });
@@ -56,7 +58,7 @@ export async function seedAnchorProjects(
           projectId: existingP1.id,
           stageId: p1Walls.id,
           filename: "walls-1.jpg",
-          url: "https://via.placeholder.com/800x600?text=Walls+Framing",
+          url: buildPhotoUrl("walls-1"),
           description: "Wall framing progress",
           capturedAt: new Date("2025-11-05"),
         });
@@ -64,7 +66,7 @@ export async function seedAnchorProjects(
           projectId: existingP1.id,
           stageId: p1Walls.id,
           filename: "walls-2.jpg",
-          url: "https://via.placeholder.com/800x600?text=Walls+Completed",
+          url: buildPhotoUrl("walls-2"),
           description: "Structural walls completed",
           capturedAt: new Date("2025-11-15"),
         });
@@ -75,10 +77,22 @@ export async function seedAnchorProjects(
           projectId: existingP1.id,
           stageId: p1Roof.id,
           filename: "roof-1.jpg",
-          url: "https://via.placeholder.com/800x600?text=Roof+Structure",
+          url: buildPhotoUrl("roof-1"),
           description: "Roof structure",
           capturedAt: new Date("2025-12-05"),
         });
+      }
+    } else {
+      const p1Photos = await prisma.photo.findMany({
+        where: { tenantId, projectId: existingP1.id },
+      });
+      for (const photo of p1Photos) {
+        if (photo.url.includes("via.placeholder.com")) {
+          await prisma.photo.update({
+            where: { id: photo.id },
+            data: { url: buildPhotoUrl(photo.filename || photo.id) },
+          });
+        }
       }
     }
 
@@ -109,7 +123,7 @@ export async function seedAnchorProjects(
             projectId: existingP2.id,
             stageId: p2Foundation.id,
             filename: "foundation-1.jpg",
-            url: "https://via.placeholder.com/800x600?text=Mokotow+Foundation+1",
+            url: buildPhotoUrl("mokotow-foundation-1"),
             description: "Foundation work",
             capturedAt: new Date("2025-11-20"),
           });
@@ -117,7 +131,7 @@ export async function seedAnchorProjects(
             projectId: existingP2.id,
             stageId: p2Foundation.id,
             filename: "foundation-2.jpg",
-            url: "https://via.placeholder.com/800x600?text=Mokotow+Foundation+2",
+            url: buildPhotoUrl("mokotow-foundation-2"),
             description: "Concrete pour",
             capturedAt: new Date("2025-11-28"),
           });
@@ -128,10 +142,22 @@ export async function seedAnchorProjects(
             projectId: existingP2.id,
             stageId: p2Walls.id,
             filename: "walls-1.jpg",
-            url: "https://via.placeholder.com/800x600?text=Mokotow+Walls",
+            url: buildPhotoUrl("mokotow-walls-1"),
             description: "Wall framing",
             capturedAt: new Date("2025-12-04"),
           });
+        }
+      } else {
+        const p2Photos = await prisma.photo.findMany({
+          where: { tenantId, projectId: existingP2.id },
+        });
+        for (const photo of p2Photos) {
+          if (photo.url.includes("via.placeholder.com")) {
+            await prisma.photo.update({
+              where: { id: photo.id },
+              data: { url: buildPhotoUrl(photo.filename || photo.id) },
+            });
+          }
         }
       }
     }
@@ -294,7 +320,7 @@ export async function seedAnchorProjects(
       projectId: p1.id,
       stageId: p1Foundation.id,
       filename: "foundation-1.jpg",
-      url: "https://via.placeholder.com/800x600?text=Foundation+Excavation",
+      url: buildPhotoUrl("foundation-1"),
       description: "Foundation excavation",
       capturedAt: new Date("2025-10-10"),
     });
@@ -302,7 +328,7 @@ export async function seedAnchorProjects(
       projectId: p1.id,
       stageId: p1Foundation.id,
       filename: "foundation-2.jpg",
-      url: "https://via.placeholder.com/800x600?text=Foundation+Footings",
+      url: buildPhotoUrl("foundation-2"),
       description: "Footings poured",
       capturedAt: new Date("2025-10-20"),
     });
@@ -313,7 +339,7 @@ export async function seedAnchorProjects(
       projectId: p1.id,
       stageId: p1Walls.id,
       filename: "walls-1.jpg",
-      url: "https://via.placeholder.com/800x600?text=Walls+Framing",
+      url: buildPhotoUrl("walls-1"),
       description: "Wall framing progress",
       capturedAt: new Date("2025-11-05"),
     });
@@ -321,7 +347,7 @@ export async function seedAnchorProjects(
       projectId: p1.id,
       stageId: p1Walls.id,
       filename: "walls-2.jpg",
-      url: "https://via.placeholder.com/800x600?text=Walls+Completed",
+      url: buildPhotoUrl("walls-2"),
       description: "Structural walls completed",
       capturedAt: new Date("2025-11-15"),
     });
@@ -332,7 +358,7 @@ export async function seedAnchorProjects(
       projectId: p1.id,
       stageId: p1Roof.id,
       filename: "roof-1.jpg",
-      url: "https://via.placeholder.com/800x600?text=Roof+Structure",
+      url: buildPhotoUrl("roof-1"),
       description: "Roof structure",
       capturedAt: new Date("2025-12-05"),
     });
@@ -483,7 +509,7 @@ export async function seedAnchorProjects(
       projectId: p2.id,
       stageId: p2Foundation.id,
       filename: "foundation-1.jpg",
-      url: "https://via.placeholder.com/800x600?text=Mokotow+Foundation+1",
+      url: buildPhotoUrl("mokotow-foundation-1"),
       description: "Foundation work",
       capturedAt: new Date("2025-11-20"),
     });
@@ -491,7 +517,7 @@ export async function seedAnchorProjects(
       projectId: p2.id,
       stageId: p2Foundation.id,
       filename: "foundation-2.jpg",
-      url: "https://via.placeholder.com/800x600?text=Mokotow+Foundation+2",
+      url: buildPhotoUrl("mokotow-foundation-2"),
       description: "Concrete pour",
       capturedAt: new Date("2025-11-28"),
     });
@@ -502,7 +528,7 @@ export async function seedAnchorProjects(
       projectId: p2.id,
       stageId: p2Walls.id,
       filename: "walls-1.jpg",
-      url: "https://via.placeholder.com/800x600?text=Mokotow+Walls",
+      url: buildPhotoUrl("mokotow-walls-1"),
       description: "Wall framing",
       capturedAt: new Date("2025-12-04"),
     });
