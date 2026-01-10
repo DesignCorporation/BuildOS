@@ -71,6 +71,7 @@ interface ProjectTabsProps {
   estimates?: Estimate[];
   stages?: Stage[];
   photos?: Photo[];
+  canViewCost?: boolean;
 }
 
 type TabName = "details" | "estimates" | "stages" | "photos";
@@ -81,6 +82,7 @@ export function ProjectTabs({
   estimates = [],
   stages = [],
   photos = [],
+  canViewCost = true,
 }: ProjectTabsProps) {
   const [activeTab, setActiveTab] = useState<TabName>("details");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -89,6 +91,7 @@ export function ProjectTabs({
   const latestDraft = estimates
     .filter((estimate) => estimate.status === "draft")
     .sort((a, b) => b.version - a.version)[0];
+  const hasClientEmail = Boolean(project.clientEmail);
 
   const isArchived = project.deletedAt !== null && project.deletedAt !== undefined;
 
@@ -338,8 +341,9 @@ export function ProjectTabs({
               {latestDraft && (
                 <button
                   onClick={() => handleSendEstimate(latestDraft.id)}
-                  disabled={sendingEstimateId === latestDraft.id}
-                  className="bg-white text-blue-600 border border-blue-200 px-4 py-2 rounded hover:bg-blue-50 transition-colors disabled:text-gray-400 disabled:border-gray-200"
+                  disabled={!hasClientEmail || sendingEstimateId === latestDraft.id}
+                  className="bg-white text-blue-600 border border-blue-200 px-4 py-2 rounded hover:bg-blue-50 transition-colors disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed"
+                  title={!hasClientEmail ? "Add client email to send estimate" : undefined}
                 >
                   {sendingEstimateId === latestDraft.id
                     ? "Sending..."
@@ -425,15 +429,19 @@ export function ProjectTabs({
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total Cost
-                      </th>
+                      {canViewCost && (
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total Cost
+                        </th>
+                      )}
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Client Price
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Margin
-                      </th>
+                      {canViewCost && (
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Margin
+                        </th>
+                      )}
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Created
                       </th>
@@ -455,23 +463,28 @@ export function ProjectTabs({
                             {getStatusLabel(estimate.status)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {formatCurrency(estimate.totalCost)}
-                        </td>
+                        {canViewCost && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {formatCurrency(estimate.totalCost)}
+                          </td>
+                        )}
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {formatCurrency(estimate.totalClient)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span
-                            className={
-                              toNumber(estimate.margin) >= 0
-                                ? "text-green-600 font-medium"
-                                : "text-red-600 font-medium"
-                            }
-                          >
-                            {formatCurrency(estimate.margin)} ({formatPercent(estimate.marginPercent)}%)
-                          </span>
-                        </td>
+                        {canViewCost && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span
+                              className={
+                                toNumber(estimate.margin) >= 0
+                                  ? "text-green-600 font-medium"
+                                  : "text-red-600 font-medium"
+                              }
+                            >
+                              {formatCurrency(estimate.margin)} (
+                              {formatPercent(estimate.marginPercent)}%)
+                            </span>
+                          </td>
+                        )}
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {formatDate(estimate.createdAt)}
                         </td>
@@ -480,20 +493,32 @@ export function ProjectTabs({
                             {estimate.status === "draft" && (
                               <button
                                 onClick={() => handleSendEstimate(estimate.id)}
-                                disabled={sendingEstimateId === estimate.id}
-                                className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+                                disabled={!hasClientEmail || sendingEstimateId === estimate.id}
+                                className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                title={!hasClientEmail ? "Add client email to send estimate" : undefined}
                               >
                                 {sendingEstimateId === estimate.id
                                   ? "Sending..."
                                   : "Send to client"}
                               </button>
                             )}
-                            <Link
-                              href={`/projects/${projectId}/estimates/${estimate.id}`}
-                              className="text-blue-600 hover:text-blue-800 text-sm"
-                            >
-                              View →
-                            </Link>
+                            <div className="flex items-center gap-3 text-sm">
+                              <Link
+                                href={`/projects/${projectId}/estimates/${estimate.id}`}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                View →
+                              </Link>
+                              {(estimate.status === "sent" ||
+                                estimate.status === "approved") && (
+                                <Link
+                                  href={`/estimate/${estimate.id}`}
+                                  className="text-gray-600 hover:text-gray-800"
+                                >
+                                  Client view
+                                </Link>
+                              )}
+                            </div>
                           </div>
                         </td>
                       </tr>

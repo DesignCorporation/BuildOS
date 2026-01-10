@@ -4,6 +4,7 @@
 // All operations go through ProjectService (NO direct Prisma/Repo access!)
 
 import { ProjectService, EstimateService, StageService, PhotoService } from "@buildos/services";
+import { UserRepository, prisma } from "@buildos/database";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -105,6 +106,7 @@ export async function getProjectByIdAction(id: string) {
     const estimateService = new EstimateService(context);
     const stageService = new StageService(context);
     const photoService = new PhotoService(context);
+    const userRepo = new UserRepository(prisma, context);
 
     const project = await projectService.getProjectById(id);
 
@@ -196,6 +198,12 @@ export async function getProjectByIdAction(id: string) {
       deletedAt: serializeDate(project.deletedAt),
     };
 
+    const canViewCost = await userRepo.hasPermission(
+      context.userId,
+      "estimates",
+      "view_cost"
+    );
+
     return {
       success: true,
       data: {
@@ -203,6 +211,7 @@ export async function getProjectByIdAction(id: string) {
         estimates,
         stages,
         photos,
+        canViewCost,
       },
     };
   } catch (error) {
