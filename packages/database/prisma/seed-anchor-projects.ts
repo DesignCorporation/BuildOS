@@ -702,7 +702,7 @@ export async function seedAnchorProjects(
   );
 
   // Project 4: Residential Townhouses "Piaseczno Meadows"
-  const { project: p4 } = await ensureProjectWithStages(
+  const { project: p4, stages: p4Stages } = await ensureProjectWithStages(
     {
       tenantId,
       name: 'Residential Townhouses "Piaseczno Meadows"',
@@ -769,6 +769,31 @@ export async function seedAnchorProjects(
         quantity: new Decimal("620"),
         unitCost: new Decimal("180"),
         unitClient: new Decimal("210"),
+      },
+    ]
+  );
+
+  await ensureEstimate(
+    p4.id,
+    {
+      version: 2,
+      status: "approved",
+      sentAt: new Date("2025-09-05"),
+      approvedAt: new Date("2025-09-18"),
+      totalCost: new Decimal("1120000"),
+      totalClient: new Decimal("1230000"),
+      margin: new Decimal("110000"),
+      marginPercent: new Decimal("9.82"),
+      notes: "Approved version after finishing plan update",
+    },
+    [
+      {
+        type: "work",
+        name: "Roof completion labor",
+        unit: "m²",
+        quantity: new Decimal("600"),
+        unitCost: new Decimal("140"),
+        unitClient: new Decimal("170"),
       },
     ]
   );
@@ -843,8 +868,38 @@ export async function seedAnchorProjects(
     ]
   );
 
+  const existingP4Photos = await prisma.photo.findFirst({
+    where: { tenantId, projectId: p4.id },
+    select: { id: true },
+  });
+
+  if (!existingP4Photos) {
+    const p4Foundation = p4Stages.find((stage) => stage.name === "Foundation");
+    const p4Finish = p4Stages.find((stage) => stage.name === "Finish");
+    if (p4Foundation) {
+      await createPhoto({
+        projectId: p4.id,
+        stageId: p4Foundation.id,
+        filename: "townhouses-foundation-1.jpg",
+        url: buildPhotoUrl("townhouses-foundation-1"),
+        description: "Foundation completed",
+        capturedAt: new Date("2025-09-15"),
+      });
+    }
+    if (p4Finish) {
+      await createPhoto({
+        projectId: p4.id,
+        stageId: p4Finish.id,
+        filename: "townhouses-finish-1.jpg",
+        url: buildPhotoUrl("townhouses-finish-1"),
+        description: "Interior finishes progress",
+        capturedAt: new Date("2025-11-05"),
+      });
+    }
+  }
+
   // Project 6: Sports Complex "Warsaw Olympics"
-  const { project: p6 } = await ensureProjectWithStages(
+  const { project: p6, stages: p6Stages } = await ensureProjectWithStages(
     {
       tenantId,
       name: 'Sports Complex Addition "Warsaw Olympics"',
@@ -910,6 +965,57 @@ export async function seedAnchorProjects(
       },
     ]
   );
+
+  await ensureEstimate(
+    p6.id,
+    {
+      version: 2,
+      status: "sent",
+      sentAt: new Date("2025-12-01"),
+      totalCost: new Decimal("5400000"),
+      totalClient: new Decimal("5850000"),
+      margin: new Decimal("450000"),
+      marginPercent: new Decimal("8.33"),
+      notes: "Updated scope with spectator facilities",
+    },
+    [
+      {
+        type: "work",
+        name: "Spectator seating installation",
+        unit: "pcs",
+        quantity: new Decimal("850"),
+        unitCost: new Decimal("120"),
+        unitClient: new Decimal("150"),
+      },
+    ]
+  );
+
+  const existingP6Photos = await prisma.photo.findFirst({
+    where: { tenantId, projectId: p6.id },
+    select: { id: true },
+  });
+
+  if (!existingP6Photos) {
+    const p6Foundation = p6Stages.find((stage) => stage.name === "Foundation");
+    if (p6Foundation) {
+      await createPhoto({
+        projectId: p6.id,
+        stageId: p6Foundation.id,
+        filename: "olympics-siteprep-1.jpg",
+        url: buildPhotoUrl("olympics-siteprep-1"),
+        description: "Site preparation",
+        capturedAt: new Date("2025-11-25"),
+      });
+      await createPhoto({
+        projectId: p6.id,
+        stageId: p6Foundation.id,
+        filename: "olympics-foundation-1.jpg",
+        url: buildPhotoUrl("olympics-foundation-1"),
+        description: "Foundation works ongoing",
+        capturedAt: new Date("2025-12-05"),
+      });
+    }
+  }
 
   // Project 7: Commercial Warehouse "Logistics Hub Łódź"
   const { project: p7 } = await ensureProjectWithStages(
@@ -982,8 +1088,8 @@ export async function seedAnchorProjects(
   console.log("   - Project 1: Villa Wilanów (3 estimate versions: draft→sent→approved)");
   console.log("   - Project 2: Apartment Complex (2 estimate versions: sent→approved)");
   console.log("   - Project 3: Office Building (2 estimate versions: draft→sent)");
-  console.log("   - Project 4: Townhouses (sent)");
+  console.log("   - Project 4: Townhouses (2 estimate versions: sent→approved)");
   console.log("   - Project 5: House Renovation (completed)");
-  console.log("   - Project 6: Sports Complex (sent)");
+  console.log("   - Project 6: Sports Complex (2 estimate versions: sent→sent)");
   console.log("   - Project 7: Warehouse (draft)\n");
 }
