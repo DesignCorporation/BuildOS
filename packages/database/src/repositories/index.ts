@@ -7,3 +7,4 @@ export * from "./project.repository";
 export * from "./estimate.repository";
 export * from "./user.repository";
 export * from "./stage.repository";
+export * from "./photo.repository";

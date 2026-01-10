@@ -53,20 +53,34 @@ interface Stage {
   notes?: string | null;
 }
 
+interface Photo {
+  id: string;
+  stageId?: string | null;
+  stageName?: string | null;
+  filename: string;
+  url: string;
+  thumbnailUrl?: string | null;
+  description?: string | null;
+  capturedAt?: Date | string | null;
+  createdAt?: Date | string | null;
+}
+
 interface ProjectTabsProps {
   projectId: string;
   project: Project;
   estimates?: Estimate[];
   stages?: Stage[];
+  photos?: Photo[];
 }
 
-type TabName = "details" | "estimates" | "stages";
+type TabName = "details" | "estimates" | "stages" | "photos";
 
 export function ProjectTabs({
   projectId,
   project,
   estimates = [],
   stages = [],
+  photos = [],
 }: ProjectTabsProps) {
   const [activeTab, setActiveTab] = useState<TabName>("details");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -195,6 +209,7 @@ export function ProjectTabs({
     { id: "details", label: "Details" },
     { id: "estimates", label: "Estimates" },
     { id: "stages", label: "Stages" },
+    { id: "photos", label: "Photos" },
   ];
 
   return (
@@ -511,6 +526,60 @@ export function ProjectTabs({
                         {stage.notes}
                       </p>
                     )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "photos" && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold mb-6">Photo Timeline</h2>
+
+            {photos.length === 0 ? (
+              <div className="text-center py-12 text-gray-600">
+                No photos yet for this project.
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {Object.entries(
+                  photos.reduce<Record<string, Photo[]>>((groups, photo) => {
+                    const key = photo.stageName || "General";
+                    if (!groups[key]) {
+                      groups[key] = [];
+                    }
+                    groups[key].push(photo);
+                    return groups;
+                  }, {})
+                ).map(([groupName, groupPhotos]) => (
+                  <div key={groupName}>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      {groupName}
+                    </h3>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {groupPhotos.map((photo) => (
+                        <div
+                          key={photo.id}
+                          className="border border-gray-200 rounded-lg overflow-hidden bg-white"
+                        >
+                          <img
+                            src={photo.thumbnailUrl || photo.url}
+                            alt={photo.description || photo.filename}
+                            className="h-40 w-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="p-3">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {photo.description || photo.filename}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {formatDate(photo.capturedAt || photo.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

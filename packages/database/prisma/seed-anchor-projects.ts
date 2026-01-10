@@ -9,13 +9,134 @@ export async function seedAnchorProjects(
   tenantId: string
 ) {
   console.log("📦 Creating 7 ANCHOR projects with estimates and stages...\n");
-  const existing = await prisma.project.findFirst({
+  const existingP1 = await prisma.project.findFirst({
     where: { tenantId, name: 'Villa "Wilanów Heights"' },
-    select: { id: true },
+    include: {
+      rooms: {
+        include: {
+          stages: true,
+        },
+      },
+    },
   });
 
-  if (existing) {
-    console.log("⚠️  ANCHOR demo projects already seeded. Skipping.");
+  if (existingP1) {
+    const existingPhotos = await prisma.photo.findFirst({
+      where: { tenantId, projectId: existingP1.id },
+      select: { id: true },
+    });
+
+    if (!existingPhotos) {
+      const p1Stages = existingP1.rooms.flatMap((room) => room.stages);
+      const p1Foundation = p1Stages.find((stage) => stage.name === "Foundation");
+      const p1Walls = p1Stages.find((stage) => stage.name === "Walls");
+      const p1Roof = p1Stages.find((stage) => stage.name === "Roof");
+
+      if (p1Foundation) {
+        await createPhoto({
+          projectId: existingP1.id,
+          stageId: p1Foundation.id,
+          filename: "foundation-1.jpg",
+          url: "https://via.placeholder.com/800x600?text=Foundation+Excavation",
+          description: "Foundation excavation",
+          capturedAt: new Date("2025-10-10"),
+        });
+        await createPhoto({
+          projectId: existingP1.id,
+          stageId: p1Foundation.id,
+          filename: "foundation-2.jpg",
+          url: "https://via.placeholder.com/800x600?text=Foundation+Footings",
+          description: "Footings poured",
+          capturedAt: new Date("2025-10-20"),
+        });
+      }
+
+      if (p1Walls) {
+        await createPhoto({
+          projectId: existingP1.id,
+          stageId: p1Walls.id,
+          filename: "walls-1.jpg",
+          url: "https://via.placeholder.com/800x600?text=Walls+Framing",
+          description: "Wall framing progress",
+          capturedAt: new Date("2025-11-05"),
+        });
+        await createPhoto({
+          projectId: existingP1.id,
+          stageId: p1Walls.id,
+          filename: "walls-2.jpg",
+          url: "https://via.placeholder.com/800x600?text=Walls+Completed",
+          description: "Structural walls completed",
+          capturedAt: new Date("2025-11-15"),
+        });
+      }
+
+      if (p1Roof) {
+        await createPhoto({
+          projectId: existingP1.id,
+          stageId: p1Roof.id,
+          filename: "roof-1.jpg",
+          url: "https://via.placeholder.com/800x600?text=Roof+Structure",
+          description: "Roof structure",
+          capturedAt: new Date("2025-12-05"),
+        });
+      }
+    }
+
+    const existingP2 = await prisma.project.findFirst({
+      where: { tenantId, name: 'Apartment Complex "Mokotów Park"' },
+      include: {
+        rooms: {
+          include: {
+            stages: true,
+          },
+        },
+      },
+    });
+
+    if (existingP2) {
+      const existingP2Photos = await prisma.photo.findFirst({
+        where: { tenantId, projectId: existingP2.id },
+        select: { id: true },
+      });
+
+      if (!existingP2Photos) {
+        const p2Stages = existingP2.rooms.flatMap((room) => room.stages);
+        const p2Foundation = p2Stages.find((stage) => stage.name === "Foundation");
+        const p2Walls = p2Stages.find((stage) => stage.name === "Walls");
+
+        if (p2Foundation) {
+          await createPhoto({
+            projectId: existingP2.id,
+            stageId: p2Foundation.id,
+            filename: "foundation-1.jpg",
+            url: "https://via.placeholder.com/800x600?text=Mokotow+Foundation+1",
+            description: "Foundation work",
+            capturedAt: new Date("2025-11-20"),
+          });
+          await createPhoto({
+            projectId: existingP2.id,
+            stageId: p2Foundation.id,
+            filename: "foundation-2.jpg",
+            url: "https://via.placeholder.com/800x600?text=Mokotow+Foundation+2",
+            description: "Concrete pour",
+            capturedAt: new Date("2025-11-28"),
+          });
+        }
+
+        if (p2Walls) {
+          await createPhoto({
+            projectId: existingP2.id,
+            stageId: p2Walls.id,
+            filename: "walls-1.jpg",
+            url: "https://via.placeholder.com/800x600?text=Mokotow+Walls",
+            description: "Wall framing",
+            capturedAt: new Date("2025-12-04"),
+          });
+        }
+      }
+    }
+
+    console.log("✅ ANCHOR demo projects already seeded. Photos ensured.");
     return;
   }
 
@@ -60,6 +181,27 @@ export async function seedAnchorProjects(
     });
   }
 
+  async function createPhoto(input: {
+    projectId: string;
+    stageId?: string;
+    filename: string;
+    url: string;
+    description?: string;
+    capturedAt?: Date;
+  }) {
+    return prisma.photo.create({
+      data: {
+        tenantId,
+        projectId: input.projectId,
+        stageId: input.stageId,
+        filename: input.filename,
+        url: input.url,
+        description: input.description,
+        capturedAt: input.capturedAt,
+      },
+    });
+  }
+
   // Helper to create project with room and stages
   async function createProjectWithStages(
     projectData: any,
@@ -80,21 +222,23 @@ export async function seedAnchorProjects(
     });
 
     // Create stages
+    const stages: any[] = [];
     for (const stage of stagesData) {
-      await prisma.stage.create({
+      const createdStage = await prisma.stage.create({
         data: {
           ...stage,
           tenantId,
           roomId: room.id,
         },
       });
+      stages.push(createdStage);
     }
 
-    return { project, room };
+    return { project, room, stages };
   }
 
   // Project 1: Villa "Wilanów Heights"
-  const { project: p1 } = await createProjectWithStages(
+  const { project: p1, stages: p1Stages } = await createProjectWithStages(
     {
       tenantId,
       name: 'Villa "Wilanów Heights"',
@@ -139,6 +283,60 @@ export async function seedAnchorProjects(
       },
     ]
   );
+
+  // Project 1 photos (Foundation + Walls + Roof)
+  const p1Foundation = p1Stages.find((stage) => stage.name === "Foundation");
+  const p1Walls = p1Stages.find((stage) => stage.name === "Walls");
+  const p1Roof = p1Stages.find((stage) => stage.name === "Roof");
+
+  if (p1Foundation) {
+    await createPhoto({
+      projectId: p1.id,
+      stageId: p1Foundation.id,
+      filename: "foundation-1.jpg",
+      url: "https://via.placeholder.com/800x600?text=Foundation+Excavation",
+      description: "Foundation excavation",
+      capturedAt: new Date("2025-10-10"),
+    });
+    await createPhoto({
+      projectId: p1.id,
+      stageId: p1Foundation.id,
+      filename: "foundation-2.jpg",
+      url: "https://via.placeholder.com/800x600?text=Foundation+Footings",
+      description: "Footings poured",
+      capturedAt: new Date("2025-10-20"),
+    });
+  }
+
+  if (p1Walls) {
+    await createPhoto({
+      projectId: p1.id,
+      stageId: p1Walls.id,
+      filename: "walls-1.jpg",
+      url: "https://via.placeholder.com/800x600?text=Walls+Framing",
+      description: "Wall framing progress",
+      capturedAt: new Date("2025-11-05"),
+    });
+    await createPhoto({
+      projectId: p1.id,
+      stageId: p1Walls.id,
+      filename: "walls-2.jpg",
+      url: "https://via.placeholder.com/800x600?text=Walls+Completed",
+      description: "Structural walls completed",
+      capturedAt: new Date("2025-11-15"),
+    });
+  }
+
+  if (p1Roof) {
+    await createPhoto({
+      projectId: p1.id,
+      stageId: p1Roof.id,
+      filename: "roof-1.jpg",
+      url: "https://via.placeholder.com/800x600?text=Roof+Structure",
+      description: "Roof structure",
+      capturedAt: new Date("2025-12-05"),
+    });
+  }
 
   // Project 1 Estimates (3 versions)
   const est1v1 = await prisma.estimate.create({
@@ -235,7 +433,7 @@ export async function seedAnchorProjects(
   });
 
   // Project 2: Apartment Complex "Mokotów Park"
-  const { project: p2 } = await createProjectWithStages(
+  const { project: p2, stages: p2Stages } = await createProjectWithStages(
     {
       tenantId,
       name: 'Apartment Complex "Mokotów Park"',
@@ -275,6 +473,40 @@ export async function seedAnchorProjects(
       },
     ]
   );
+
+  // Project 2 photos (Foundation + Walls)
+  const p2Foundation = p2Stages.find((stage) => stage.name === "Foundation");
+  const p2Walls = p2Stages.find((stage) => stage.name === "Walls");
+
+  if (p2Foundation) {
+    await createPhoto({
+      projectId: p2.id,
+      stageId: p2Foundation.id,
+      filename: "foundation-1.jpg",
+      url: "https://via.placeholder.com/800x600?text=Mokotow+Foundation+1",
+      description: "Foundation work",
+      capturedAt: new Date("2025-11-20"),
+    });
+    await createPhoto({
+      projectId: p2.id,
+      stageId: p2Foundation.id,
+      filename: "foundation-2.jpg",
+      url: "https://via.placeholder.com/800x600?text=Mokotow+Foundation+2",
+      description: "Concrete pour",
+      capturedAt: new Date("2025-11-28"),
+    });
+  }
+
+  if (p2Walls) {
+    await createPhoto({
+      projectId: p2.id,
+      stageId: p2Walls.id,
+      filename: "walls-1.jpg",
+      url: "https://via.placeholder.com/800x600?text=Mokotow+Walls",
+      description: "Wall framing",
+      capturedAt: new Date("2025-12-04"),
+    });
+  }
 
   // Project 2 Estimates
   const est2v1 = await prisma.estimate.create({

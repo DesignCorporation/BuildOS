@@ -157,6 +157,7 @@ model Project {
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   rooms     Room[]
   estimates Estimate[]
+  photos    Photo[]
 
   @@index([tenantId])
   @@index([tenantId, deletedAt]) // For filtering out deleted
@@ -211,12 +212,43 @@ model Stage {
 
   // Relations
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  photos Photo[]
 
   @@index([tenantId])
   @@index([roomId])
   @@index([tenantId, deletedAt])
   @@index([status])
   @@map("stages")
+}
+
+model Photo {
+  id           String   @id @default(cuid())
+  tenantId     String
+  projectId    String
+  stageId      String?
+  filename     String
+  url          String
+  thumbnailUrl String?
+  description  String?  @db.Text
+  capturedAt   DateTime @default(now())
+  uploadedBy   String?
+  fileSize     Int?
+  mimeType     String?
+  width        Int?
+  height       Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage   Stage?  @relation(fields: [stageId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([stageId])
+  @@index([tenantId, deletedAt])
+  @@map("photos")
 }
 
 // ============================================================================

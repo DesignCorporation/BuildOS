@@ -3,7 +3,7 @@
 // BuildOS - Project Server Actions
 // All operations go through ProjectService (NO direct Prisma/Repo access!)
 
-import { ProjectService, EstimateService, StageService } from "@buildos/services";
+import { ProjectService, EstimateService, StageService, PhotoService } from "@buildos/services";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -104,6 +104,7 @@ export async function getProjectByIdAction(id: string) {
     const projectService = new ProjectService(context);
     const estimateService = new EstimateService(context);
     const stageService = new StageService(context);
+    const photoService = new PhotoService(context);
 
     const project = await projectService.getProjectById(id);
 
@@ -168,6 +169,26 @@ export async function getProjectByIdAction(id: string) {
       console.warn("Failed to load stages for project:", stageError);
     }
 
+    // Load photos for this project
+    let photos: any[] = [];
+    try {
+      const rawPhotos = await photoService.getPhotosByProjectId(id);
+      photos = rawPhotos.map((photo: any) => ({
+        id: photo.id,
+        stageId: photo.stageId,
+        stageName: photo.stage?.name || null,
+        filename: photo.filename,
+        url: photo.url,
+        thumbnailUrl: photo.thumbnailUrl,
+        description: photo.description,
+        capturedAt: serializeDate(photo.capturedAt),
+        createdAt: serializeDate(photo.createdAt),
+      }));
+      photos = sanitize(photos);
+    } catch (photoError) {
+      console.warn("Failed to load photos for project:", photoError);
+    }
+
     const serializedProject = {
       ...project,
       createdAt: serializeDate(project.createdAt),
@@ -181,6 +202,7 @@ export async function getProjectByIdAction(id: string) {
         project: sanitize(serializedProject),
         estimates,
         stages,
+        photos,
       },
     };
   } catch (error) {
