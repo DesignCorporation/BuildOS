@@ -1,7 +1,7 @@
 // BuildOS - Client Portal helpers
 // Centralize demo auth, permission checks, and client identity resolution
 
-import { prisma, UserRepository } from "@buildos/database";
+import { prisma, UserRepository, RepositoryContext } from "@buildos/database";
 import { getDemoContext } from "@/lib/demo-context";
 
 export async function getClientContext() {
@@ -23,7 +23,7 @@ export async function getClientContext() {
 
 export async function hasPermission(
   userId: string,
-  context: { tenantId: string },
+  context: RepositoryContext,
   resource: string,
   action: string
 ) {
