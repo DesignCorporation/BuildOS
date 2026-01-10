@@ -22,6 +22,20 @@ async function getCurrentContext() {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
+function sanitizeFilename(filename: string) {
+  const parts = filename.split(".");
+  const ext = parts.length > 1 ? parts.pop() : "";
+  const base = parts.join(".");
+  const normalized = base
+    .normalize("NFKD")
+    .replace(/[^\w-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  const safeBase = normalized || "photo";
+  const safeExt = ext ? `.${ext.replace(/[^\w]+/g, "").toLowerCase()}` : "";
+  return `${safeBase}${safeExt}`;
+}
+
 export async function createPhotoAction(formData: FormData) {
   try {
     const context = await getCurrentContext();
@@ -57,7 +71,7 @@ export async function createPhotoAction(formData: FormData) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const safeFilename = file.name.replace(/\s+/g, "-");
+    const safeFilename = sanitizeFilename(file.name);
     const objectName = `${context.tenantId}/${validated.projectId}/${
       validated.stageId || "general"
     }/${crypto.randomUUID()}-${safeFilename}`;

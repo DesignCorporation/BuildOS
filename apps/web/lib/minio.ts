@@ -48,9 +48,15 @@ export async function uploadBuffer(params: {
   contentType?: string;
 }) {
   const bucket = await ensureBucket();
-  await client.putObject(bucket, params.objectName, params.buffer, {
-    "Content-Type": params.contentType || "application/octet-stream",
-  });
+  await client.putObject(
+    bucket,
+    params.objectName,
+    params.buffer,
+    params.buffer.length,
+    {
+      "Content-Type": params.contentType || "application/octet-stream",
+    }
+  );
 
   const baseUrl =
     MINIO_PUBLIC_URL ||

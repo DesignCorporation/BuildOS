@@ -738,7 +738,7 @@ export function ProjectTabs({
                               className="flex-shrink-0"
                             >
                               <img
-                                src={photo.thumbnailUrl || photo.url}
+                                src={encodeURI(photo.thumbnailUrl || photo.url)}
                                 alt={photo.description || photo.filename}
                                 className="h-28 w-40 object-cover rounded"
                                 loading="lazy"
@@ -782,7 +782,7 @@ export function ProjectTabs({
         >
           <div className="max-w-4xl w-full" onClick={(event) => event.stopPropagation()}>
             <img
-              src={lightboxPhoto.url}
+              src={encodeURI(lightboxPhoto.url)}
               alt={lightboxPhoto.description || lightboxPhoto.filename}
               className="w-full h-auto rounded shadow-lg"
             />
