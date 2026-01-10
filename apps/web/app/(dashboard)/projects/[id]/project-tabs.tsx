@@ -41,15 +41,33 @@ interface Estimate {
   deletedAt?: Date | string | null;
 }
 
+interface Stage {
+  id: string;
+  roomId: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  order: number;
+  startedAt?: Date | string | null;
+  completedAt?: Date | string | null;
+  notes?: string | null;
+}
+
 interface ProjectTabsProps {
   projectId: string;
   project: Project;
   estimates?: Estimate[];
+  stages?: Stage[];
 }
 
 type TabName = "details" | "estimates" | "stages";
 
-export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsProps) {
+export function ProjectTabs({
+  projectId,
+  project,
+  estimates = [],
+  stages = [],
+}: ProjectTabsProps) {
   const [activeTab, setActiveTab] = useState<TabName>("details");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -113,6 +131,24 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
       rejected: "Rejected",
     };
     return labels[status] || status;
+  };
+
+  const getStageStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending: "Planned",
+      in_progress: "In Progress",
+      completed: "Done",
+    };
+    return labels[status] || status;
+  };
+
+  const getStageStatusBadge = (status: string) => {
+    const badges: Record<string, string> = {
+      pending: "bg-gray-100 text-gray-800",
+      in_progress: "bg-yellow-100 text-yellow-800",
+      completed: "bg-green-100 text-green-800",
+    };
+    return badges[status] || "bg-gray-100 text-gray-800";
   };
 
   const getProjectStatusLabel = (status: string) => {
@@ -434,30 +470,51 @@ export function ProjectTabs({ projectId, project, estimates = [] }: ProjectTabsP
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-6">Project Stages</h2>
 
-            {/* Placeholder */}
-            <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <svg
-                  className="w-20 h-20 mx-auto"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                  />
-                </svg>
+            {stages.length === 0 ? (
+              <div className="text-center py-12 text-gray-600">
+                No stages yet for this project.
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Coming Soon
-              </h3>
-              <p className="text-gray-600">
-                Project stages will be available in Issue #18
-              </p>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                {stages.map((stage) => (
+                  <div
+                    key={stage.id}
+                    className="border border-gray-200 rounded-lg p-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {stage.name}
+                        </h3>
+                        {stage.description && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            {stage.description}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStageStatusBadge(
+                          stage.status
+                        )}`}
+                      >
+                        {getStageStatusLabel(stage.status)}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
+                      <span>Start: {formatDate(stage.startedAt)}</span>
+                      <span>Completed: {formatDate(stage.completedAt)}</span>
+                    </div>
+
+                    {stage.notes && (
+                      <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap">
+                        {stage.notes}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

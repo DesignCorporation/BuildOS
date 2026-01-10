@@ -3,7 +3,7 @@
 // BuildOS - Project Server Actions
 // All operations go through ProjectService (NO direct Prisma/Repo access!)
 
-import { ProjectService, EstimateService } from "@buildos/services";
+import { ProjectService, EstimateService, StageService } from "@buildos/services";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -103,6 +103,7 @@ export async function getProjectByIdAction(id: string) {
     const context = await getCurrentContext();
     const projectService = new ProjectService(context);
     const estimateService = new EstimateService(context);
+    const stageService = new StageService(context);
 
     const project = await projectService.getProjectById(id);
 
@@ -149,6 +150,24 @@ export async function getProjectByIdAction(id: string) {
       // Continue without estimates rather than failing the whole request
     }
 
+    // Load stages for this project
+    let stages: any[] = [];
+    try {
+      const stageResult = await stageService.getStagesByProjectId(id);
+      const rawStages = stageResult || [];
+      stages = rawStages.map((stage: any) => ({
+        ...stage,
+        startedAt: serializeDate(stage.startedAt),
+        completedAt: serializeDate(stage.completedAt),
+        createdAt: serializeDate(stage.createdAt),
+        updatedAt: serializeDate(stage.updatedAt),
+        deletedAt: serializeDate(stage.deletedAt),
+      }));
+      stages = sanitize(stages);
+    } catch (stageError) {
+      console.warn("Failed to load stages for project:", stageError);
+    }
+
     const serializedProject = {
       ...project,
       createdAt: serializeDate(project.createdAt),
@@ -161,6 +180,7 @@ export async function getProjectByIdAction(id: string) {
       data: {
         project: sanitize(serializedProject),
         estimates,
+        stages,
       },
     };
   } catch (error) {

@@ -3,3 +3,4 @@
 
 export * from "./estimate.service";
 export * from "./project.service";
+export * from "./stage.service";
