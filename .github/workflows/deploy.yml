@@ -233,10 +233,6 @@ jobs:
           cat "\$env_file" | sed 's/=.*/=***/'
           export IMAGE_TAG POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB DATABASE_URL REDIS_PASSWORD REDIS_URL MINIO_ROOT_USER MINIO_ROOT_PASSWORD NEXTAUTH_SECRET
 
-          # Stop existing services without destroying volumes
-          unset COMPOSE_FILE
-          docker compose --project-directory "\$PWD" --project-name "$PROJECT_NAME" --env-file "\$env_file" -f "\$PWD/docker-compose.prod.yml" stop
-
           # Set image tag
           export IMAGE_TAG="$IMAGE_TAG"
 
