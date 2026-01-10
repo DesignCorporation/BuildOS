@@ -152,12 +152,18 @@ export default async function ClientEstimatePage({ params }: PageProps) {
               )}
             </div>
             <div className="flex flex-col items-end gap-2 text-sm text-gray-600">
-              {getStatusBadge(estimate.status)}
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-wide text-gray-500">Status</span>
+                {getStatusBadge(estimate.status)}
+              </div>
               {estimate.status === "approved" && estimate.approvedAt && (
-                <div>Approved: {formatDate(estimate.approvedAt)}</div>
+                <div>Approved on {formatDate(estimate.approvedAt)}</div>
               )}
               {estimate.status === "sent" && estimate.sentAt && (
-                <div>Sent: {formatDate(estimate.sentAt)}</div>
+                <div>Sent on {formatDate(estimate.sentAt)}</div>
+              )}
+              {estimate.status !== "approved" && estimate.status !== "sent" && (
+                <div>Created on {formatDate(estimate.createdAt)}</div>
               )}
             </div>
           </div>
@@ -276,6 +282,20 @@ export default async function ClientEstimatePage({ params }: PageProps) {
           <p className="text-sm text-gray-600">
             Demo placeholder: contact@anchor-construction.pl, +48 500 000 000
           </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <a
+              href="mailto:contact@anchor-construction.pl"
+              className="inline-flex items-center gap-2 rounded border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              Email manager
+            </a>
+            <a
+              href="tel:+48500000000"
+              className="inline-flex items-center gap-2 rounded border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              Call manager
+            </a>
+          </div>
         </div>
 
         {/* Footer */}
