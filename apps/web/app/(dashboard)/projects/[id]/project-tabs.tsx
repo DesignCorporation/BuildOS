@@ -165,6 +165,30 @@ export function ProjectTabs({
     return badges[status] || "bg-gray-100 text-gray-800";
   };
 
+  const sanitizeStageNotes = (notes?: string | null) => {
+    if (!notes) {
+      return null;
+    }
+    const cleaned = notes
+      .split("\n")
+      .filter((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return false;
+        }
+        if (trimmed.startsWith("Photos:")) {
+          return false;
+        }
+        if (trimmed.includes("http://") || trimmed.includes("https://")) {
+          return false;
+        }
+        return true;
+      })
+      .join("\n")
+      .trim();
+    return cleaned || null;
+  };
+
   const getProjectStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
       draft: "Draft",
@@ -521,9 +545,9 @@ export function ProjectTabs({
                       <span>Completed: {formatDate(stage.completedAt)}</span>
                     </div>
 
-                    {stage.notes && (
+                    {sanitizeStageNotes(stage.notes) && (
                       <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap">
-                        {stage.notes}
+                        {sanitizeStageNotes(stage.notes)}
                       </p>
                     )}
                   </div>
