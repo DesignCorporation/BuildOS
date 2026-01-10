@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { ProjectService } from "@buildos/services";
 import { getClientContext, hasPermission } from "../lib/client-portal";
 
+export const dynamic = "force-dynamic";
+
 export default async function ClientProjectsPage() {
   const { context, user } = await getClientContext();
   if (!user?.email) {

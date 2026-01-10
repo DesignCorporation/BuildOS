@@ -5,6 +5,8 @@ import { notFound, redirect } from "next/navigation";
 import { EstimateService, ProjectService } from "@buildos/services";
 import { getClientContext, hasPermission } from "../../../lib/client-portal";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

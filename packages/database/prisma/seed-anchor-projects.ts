@@ -11,93 +11,30 @@ export async function seedAnchorProjects(
   console.log("📦 Creating 7 ANCHOR projects with estimates and stages...\n");
   const buildPhotoUrl = (seed: string) =>
     `https://picsum.photos/seed/${encodeURIComponent(seed)}/800/600`;
-  const existingP1 = await prisma.project.findFirst({
-    where: { tenantId, name: 'Villa "Wilanów Heights"' },
-    include: {
-      rooms: {
-        include: {
-          stages: true,
-        },
-      },
+
+  async function ensureProjectWithStages(
+    projectData: {
+      tenantId: string;
+      name: string;
+      address?: string;
+      clientName?: string;
+      clientEmail?: string;
+      clientPhone?: string;
+      status?: string;
+      notes?: string;
     },
-  });
-
-  if (existingP1) {
-    const existingPhotos = await prisma.photo.findFirst({
-      where: { tenantId, projectId: existingP1.id },
-      select: { id: true },
-    });
-
-    if (!existingPhotos) {
-      const p1Stages = existingP1.rooms.flatMap((room) => room.stages);
-      const p1Foundation = p1Stages.find((stage) => stage.name === "Foundation");
-      const p1Walls = p1Stages.find((stage) => stage.name === "Walls");
-      const p1Roof = p1Stages.find((stage) => stage.name === "Roof");
-
-      if (p1Foundation) {
-        await createPhoto({
-          projectId: existingP1.id,
-          stageId: p1Foundation.id,
-          filename: "foundation-1.jpg",
-          url: buildPhotoUrl("foundation-1"),
-          description: "Foundation excavation",
-          capturedAt: new Date("2025-10-10"),
-        });
-        await createPhoto({
-          projectId: existingP1.id,
-          stageId: p1Foundation.id,
-          filename: "foundation-2.jpg",
-          url: buildPhotoUrl("foundation-2"),
-          description: "Footings poured",
-          capturedAt: new Date("2025-10-20"),
-        });
-      }
-
-      if (p1Walls) {
-        await createPhoto({
-          projectId: existingP1.id,
-          stageId: p1Walls.id,
-          filename: "walls-1.jpg",
-          url: buildPhotoUrl("walls-1"),
-          description: "Wall framing progress",
-          capturedAt: new Date("2025-11-05"),
-        });
-        await createPhoto({
-          projectId: existingP1.id,
-          stageId: p1Walls.id,
-          filename: "walls-2.jpg",
-          url: buildPhotoUrl("walls-2"),
-          description: "Structural walls completed",
-          capturedAt: new Date("2025-11-15"),
-        });
-      }
-
-      if (p1Roof) {
-        await createPhoto({
-          projectId: existingP1.id,
-          stageId: p1Roof.id,
-          filename: "roof-1.jpg",
-          url: buildPhotoUrl("roof-1"),
-          description: "Roof structure",
-          capturedAt: new Date("2025-12-05"),
-        });
-      }
-    } else {
-      const p1Photos = await prisma.photo.findMany({
-        where: { tenantId, projectId: existingP1.id },
-      });
-      for (const photo of p1Photos) {
-        if (photo.url.includes("via.placeholder.com")) {
-          await prisma.photo.update({
-            where: { id: photo.id },
-            data: { url: buildPhotoUrl(photo.filename || photo.id) },
-          });
-        }
-      }
-    }
-
-    const existingP2 = await prisma.project.findFirst({
-      where: { tenantId, name: 'Apartment Complex "Mokotów Park"' },
+    stagesData: Array<{
+      name: string;
+      description?: string;
+      status?: string;
+      order: number;
+      startedAt?: Date;
+      completedAt?: Date;
+      notes?: string;
+    }>
+  ) {
+    const existingProject = await prisma.project.findFirst({
+      where: { tenantId, name: projectData.name },
       include: {
         rooms: {
           include: {
@@ -107,63 +44,39 @@ export async function seedAnchorProjects(
       },
     });
 
-    if (existingP2) {
-      const existingP2Photos = await prisma.photo.findFirst({
-        where: { tenantId, projectId: existingP2.id },
-        select: { id: true },
-      });
-
-      if (!existingP2Photos) {
-        const p2Stages = existingP2.rooms.flatMap((room) => room.stages);
-        const p2Foundation = p2Stages.find((stage) => stage.name === "Foundation");
-        const p2Walls = p2Stages.find((stage) => stage.name === "Walls");
-
-        if (p2Foundation) {
-          await createPhoto({
-            projectId: existingP2.id,
-            stageId: p2Foundation.id,
-            filename: "foundation-1.jpg",
-            url: buildPhotoUrl("mokotow-foundation-1"),
-            description: "Foundation work",
-            capturedAt: new Date("2025-11-20"),
-          });
-          await createPhoto({
-            projectId: existingP2.id,
-            stageId: p2Foundation.id,
-            filename: "foundation-2.jpg",
-            url: buildPhotoUrl("mokotow-foundation-2"),
-            description: "Concrete pour",
-            capturedAt: new Date("2025-11-28"),
-          });
-        }
-
-        if (p2Walls) {
-          await createPhoto({
-            projectId: existingP2.id,
-            stageId: p2Walls.id,
-            filename: "walls-1.jpg",
-            url: buildPhotoUrl("mokotow-walls-1"),
-            description: "Wall framing",
-            capturedAt: new Date("2025-12-04"),
-          });
-        }
-      } else {
-        const p2Photos = await prisma.photo.findMany({
-          where: { tenantId, projectId: existingP2.id },
+    if (existingProject) {
+      let room = existingProject.rooms.find((r) => r.name === "Main Construction");
+      if (!room) {
+        room = await prisma.room.create({
+          data: {
+            tenantId,
+            projectId: existingProject.id,
+            name: "Main Construction",
+            notes: "Main construction phases",
+          },
         });
-        for (const photo of p2Photos) {
-          if (photo.url.includes("via.placeholder.com")) {
-            await prisma.photo.update({
-              where: { id: photo.id },
-              data: { url: buildPhotoUrl(photo.filename || photo.id) },
-            });
-          }
+      }
+
+      const existingStages = existingProject.rooms.flatMap((r) => r.stages);
+      const stages: any[] = [...existingStages];
+      for (const stage of stagesData) {
+        const alreadyExists = existingStages.some((s) => s.name === stage.name);
+        if (!alreadyExists) {
+          const createdStage = await prisma.stage.create({
+            data: {
+              ...stage,
+              tenantId,
+              roomId: room.id,
+            },
+          });
+          stages.push(createdStage);
         }
       }
+
+      return { project: existingProject, room, stages };
     }
 
-    console.log("✅ ANCHOR demo projects already seeded. Photos ensured.");
-    return;
+    return createProjectWithStages(projectData, stagesData);
   }
 
   async function createEstimateItem(
@@ -205,6 +118,58 @@ export async function seedAnchorProjects(
         marginPercent,
       },
     });
+  }
+
+  async function ensureEstimate(
+    projectId: string,
+    estimateData: {
+      version: number;
+      status: string;
+      totalCost: Decimal | string;
+      totalClient: Decimal | string;
+      margin: Decimal | string;
+      marginPercent: Decimal | string;
+      sentAt?: Date;
+      approvedAt?: Date;
+      notes?: string;
+    },
+    items: Array<{
+      type: string;
+      name: string;
+      description?: string;
+      unit: string;
+      quantity: Decimal | string | number;
+      unitCost: Decimal | string | number;
+      unitClient: Decimal | string | number;
+    }>
+  ) {
+    const estimate = await prisma.estimate.upsert({
+      where: {
+        projectId_version: {
+          projectId,
+          version: estimateData.version,
+        },
+      },
+      update: {},
+      create: {
+        tenantId,
+        projectId,
+        ...estimateData,
+      },
+    });
+
+    const existingItem = await prisma.estimateItem.findFirst({
+      where: { estimateId: estimate.id },
+      select: { id: true },
+    });
+
+    if (!existingItem) {
+      for (const item of items) {
+        await createEstimateItem(estimate.id, item);
+      }
+    }
+
+    return estimate;
   }
 
   async function createPhoto(input: {
@@ -264,7 +229,7 @@ export async function seedAnchorProjects(
   }
 
   // Project 1: Villa "Wilanów Heights"
-  const { project: p1, stages: p1Stages } = await createProjectWithStages(
+  const { project: p1, stages: p1Stages } = await ensureProjectWithStages(
     {
       tenantId,
       name: 'Villa "Wilanów Heights"',
@@ -315,7 +280,12 @@ export async function seedAnchorProjects(
   const p1Walls = p1Stages.find((stage) => stage.name === "Walls");
   const p1Roof = p1Stages.find((stage) => stage.name === "Roof");
 
-  if (p1Foundation) {
+  const existingP1Photos = await prisma.photo.findFirst({
+    where: { tenantId, projectId: p1.id },
+    select: { id: true },
+  });
+
+  if (p1Foundation && !existingP1Photos) {
     await createPhoto({
       projectId: p1.id,
       stageId: p1Foundation.id,
@@ -332,9 +302,21 @@ export async function seedAnchorProjects(
       description: "Footings poured",
       capturedAt: new Date("2025-10-20"),
     });
+  } else if (existingP1Photos) {
+    const p1Photos = await prisma.photo.findMany({
+      where: { tenantId, projectId: p1.id },
+    });
+    for (const photo of p1Photos) {
+      if (photo.url.includes("via.placeholder.com")) {
+        await prisma.photo.update({
+          where: { id: photo.id },
+          data: { url: buildPhotoUrl(photo.filename || photo.id) },
+        });
+      }
+    }
   }
 
-  if (p1Walls) {
+  if (p1Walls && !existingP1Photos) {
     await createPhoto({
       projectId: p1.id,
       stageId: p1Walls.id,
@@ -353,7 +335,7 @@ export async function seedAnchorProjects(
     });
   }
 
-  if (p1Roof) {
+  if (p1Roof && !existingP1Photos) {
     await createPhoto({
       projectId: p1.id,
       stageId: p1Roof.id,
@@ -365,10 +347,9 @@ export async function seedAnchorProjects(
   }
 
   // Project 1 Estimates (3 versions)
-  const est1v1 = await prisma.estimate.create({
-    data: {
-      tenantId,
-      projectId: p1.id,
+  await ensureEstimate(
+    p1.id,
+    {
       version: 1,
       status: "draft",
       totalCost: new Decimal("2350000"),
@@ -377,50 +358,45 @@ export async function seedAnchorProjects(
       marginPercent: new Decimal("6.38"),
       notes: "Initial estimate for Villa Wilanów - luxury finishes",
     },
-  });
+    [
+      {
+        type: "work",
+        name: "Excavation & Foundation",
+        unit: "m³",
+        quantity: new Decimal("450"),
+        unitCost: new Decimal("350"),
+        unitClient: new Decimal("400"),
+      },
+      {
+        type: "material",
+        name: "Premium Concrete & Reinforcement",
+        unit: "m³",
+        quantity: new Decimal("200"),
+        unitCost: new Decimal("800"),
+        unitClient: new Decimal("900"),
+      },
+      {
+        type: "work",
+        name: "Wall Construction",
+        unit: "m²",
+        quantity: new Decimal("1200"),
+        unitCost: new Decimal("350"),
+        unitClient: new Decimal("380"),
+      },
+      {
+        type: "material",
+        name: "Facade Materials (Natural Stone)",
+        unit: "m²",
+        quantity: new Decimal("400"),
+        unitCost: new Decimal("450"),
+        unitClient: new Decimal("550"),
+      },
+    ]
+  );
 
-  // Add items to v1
-  await createEstimateItem(est1v1.id, {
-    type: "work",
-    name: "Excavation & Foundation",
-    unit: "m³",
-    quantity: new Decimal("450"),
-    unitCost: new Decimal("350"),
-    unitClient: new Decimal("400"),
-  });
-
-  await createEstimateItem(est1v1.id, {
-    type: "material",
-    name: "Premium Concrete & Reinforcement",
-    unit: "m³",
-    quantity: new Decimal("200"),
-    unitCost: new Decimal("800"),
-    unitClient: new Decimal("900"),
-  });
-
-  await createEstimateItem(est1v1.id, {
-    type: "work",
-    name: "Wall Construction",
-    unit: "m²",
-    quantity: new Decimal("1200"),
-    unitCost: new Decimal("350"),
-    unitClient: new Decimal("380"),
-  });
-
-  await createEstimateItem(est1v1.id, {
-    type: "material",
-    name: "Facade Materials (Natural Stone)",
-    unit: "m²",
-    quantity: new Decimal("400"),
-    unitCost: new Decimal("450"),
-    unitClient: new Decimal("550"),
-  });
-
-  // v2 - Sent to client
-  const est1v2 = await prisma.estimate.create({
-    data: {
-      tenantId,
-      projectId: p1.id,
+  await ensureEstimate(
+    p1.id,
+    {
       version: 2,
       status: "sent",
       sentAt: new Date("2025-10-25"),
@@ -430,22 +406,29 @@ export async function seedAnchorProjects(
       marginPercent: new Decimal("6.25"),
       notes: "Revised estimate - expanded scope for additional rooms",
     },
-  });
+    [
+      {
+        type: "work",
+        name: "Excavation & Foundation",
+        unit: "m³",
+        quantity: new Decimal("450"),
+        unitCost: new Decimal("350"),
+        unitClient: new Decimal("400"),
+      },
+      {
+        type: "work",
+        name: "Roof framing updates",
+        unit: "m²",
+        quantity: new Decimal("380"),
+        unitCost: new Decimal("280"),
+        unitClient: new Decimal("320"),
+      },
+    ]
+  );
 
-  await createEstimateItem(est1v2.id, {
-    type: "work",
-    name: "Excavation & Foundation",
-    unit: "m³",
-    quantity: new Decimal("450"),
-    unitCost: new Decimal("350"),
-    unitClient: new Decimal("400"),
-  });
-
-  // v3 - Approved
-  const est1v3 = await prisma.estimate.create({
-    data: {
-      tenantId,
-      projectId: p1.id,
+  await ensureEstimate(
+    p1.id,
+    {
       version: 3,
       status: "approved",
       approvedAt: new Date("2025-11-01"),
@@ -456,10 +439,20 @@ export async function seedAnchorProjects(
       marginPercent: new Decimal("5.04"),
       notes: "Final approved estimate - optimized scope",
     },
-  });
+    [
+      {
+        type: "material",
+        name: "Facade Materials (Natural Stone)",
+        unit: "m²",
+        quantity: new Decimal("380"),
+        unitCost: new Decimal("450"),
+        unitClient: new Decimal("540"),
+      },
+    ]
+  );
 
   // Project 2: Apartment Complex "Mokotów Park"
-  const { project: p2, stages: p2Stages } = await createProjectWithStages(
+  const { project: p2, stages: p2Stages } = await ensureProjectWithStages(
     {
       tenantId,
       name: 'Apartment Complex "Mokotów Park"',
@@ -504,7 +497,12 @@ export async function seedAnchorProjects(
   const p2Foundation = p2Stages.find((stage) => stage.name === "Foundation");
   const p2Walls = p2Stages.find((stage) => stage.name === "Walls");
 
-  if (p2Foundation) {
+  const existingP2Photos = await prisma.photo.findFirst({
+    where: { tenantId, projectId: p2.id },
+    select: { id: true },
+  });
+
+  if (p2Foundation && !existingP2Photos) {
     await createPhoto({
       projectId: p2.id,
       stageId: p2Foundation.id,
@@ -521,9 +519,21 @@ export async function seedAnchorProjects(
       description: "Concrete pour",
       capturedAt: new Date("2025-11-28"),
     });
+  } else if (existingP2Photos) {
+    const p2Photos = await prisma.photo.findMany({
+      where: { tenantId, projectId: p2.id },
+    });
+    for (const photo of p2Photos) {
+      if (photo.url.includes("via.placeholder.com")) {
+        await prisma.photo.update({
+          where: { id: photo.id },
+          data: { url: buildPhotoUrl(photo.filename || photo.id) },
+        });
+      }
+    }
   }
 
-  if (p2Walls) {
+  if (p2Walls && !existingP2Photos) {
     await createPhoto({
       projectId: p2.id,
       stageId: p2Walls.id,
@@ -535,10 +545,9 @@ export async function seedAnchorProjects(
   }
 
   // Project 2 Estimates
-  const est2v1 = await prisma.estimate.create({
-    data: {
-      tenantId,
-      projectId: p2.id,
+  await ensureEstimate(
+    p2.id,
+    {
       version: 1,
       status: "sent",
       sentAt: new Date("2025-11-10"),
@@ -548,10 +557,61 @@ export async function seedAnchorProjects(
       marginPercent: new Decimal("2.38"),
       notes: "Estimate for 24-unit complex with retail space",
     },
-  });
+    [
+      {
+        type: "work",
+        name: "Foundation works",
+        unit: "m³",
+        quantity: new Decimal("780"),
+        unitCost: new Decimal("320"),
+        unitClient: new Decimal("350"),
+      },
+      {
+        type: "material",
+        name: "Concrete + reinforcement",
+        unit: "m³",
+        quantity: new Decimal("420"),
+        unitCost: new Decimal("700"),
+        unitClient: new Decimal("760"),
+      },
+      {
+        type: "work",
+        name: "Structural walls",
+        unit: "m²",
+        quantity: new Decimal("2800"),
+        unitCost: new Decimal("310"),
+        unitClient: new Decimal("340"),
+      },
+    ]
+  );
+
+  await ensureEstimate(
+    p2.id,
+    {
+      version: 2,
+      status: "approved",
+      sentAt: new Date("2025-11-15"),
+      approvedAt: new Date("2025-11-25"),
+      totalCost: new Decimal("4150000"),
+      totalClient: new Decimal("4300000"),
+      margin: new Decimal("150000"),
+      marginPercent: new Decimal("3.61"),
+      notes: "Approved version with updated retail fit-out scope",
+    },
+    [
+      {
+        type: "material",
+        name: "Facade system",
+        unit: "m²",
+        quantity: new Decimal("1200"),
+        unitCost: new Decimal("420"),
+        unitClient: new Decimal("460"),
+      },
+    ]
+  );
 
   // Project 3: Office Building "TechHub Praga"
-  const { project: p3 } = await createProjectWithStages(
+  const { project: p3 } = await ensureProjectWithStages(
     {
       tenantId,
       name: 'Office Building "TechHub Praga"',
@@ -586,10 +646,9 @@ export async function seedAnchorProjects(
   );
 
   // Project 3 Estimate
-  const est3v1 = await prisma.estimate.create({
-    data: {
-      tenantId,
-      projectId: p3.id,
+  await ensureEstimate(
+    p3.id,
+    {
       version: 1,
       status: "draft",
       totalCost: new Decimal("3500000"),
@@ -598,10 +657,52 @@ export async function seedAnchorProjects(
       marginPercent: new Decimal("8.57"),
       notes: "Initial quote for 6-story office building (sent to stakeholders)",
     },
-  });
+    [
+      {
+        type: "work",
+        name: "Structural frame",
+        unit: "m²",
+        quantity: new Decimal("9000"),
+        unitCost: new Decimal("260"),
+        unitClient: new Decimal("290"),
+      },
+      {
+        type: "material",
+        name: "Steel & concrete",
+        unit: "t",
+        quantity: new Decimal("420"),
+        unitCost: new Decimal("4200"),
+        unitClient: new Decimal("4600"),
+      },
+    ]
+  );
+
+  await ensureEstimate(
+    p3.id,
+    {
+      version: 2,
+      status: "sent",
+      sentAt: new Date("2025-11-18"),
+      totalCost: new Decimal("3600000"),
+      totalClient: new Decimal("3920000"),
+      margin: new Decimal("320000"),
+      marginPercent: new Decimal("8.89"),
+      notes: "Updated scope with MEP preliminary allowances",
+    },
+    [
+      {
+        type: "work",
+        name: "MEP preliminary",
+        unit: "m²",
+        quantity: new Decimal("9000"),
+        unitCost: new Decimal("90"),
+        unitClient: new Decimal("110"),
+      },
+    ]
+  );
 
   // Project 4: Residential Townhouses "Piaseczno Meadows"
-  const { project: p4 } = await createProjectWithStages(
+  const { project: p4 } = await ensureProjectWithStages(
     {
       tenantId,
       name: 'Residential Townhouses "Piaseczno Meadows"',
@@ -641,10 +742,9 @@ export async function seedAnchorProjects(
   );
 
   // Project 4 Estimates
-  await prisma.estimate.create({
-    data: {
-      tenantId,
-      projectId: p4.id,
+  await ensureEstimate(
+    p4.id,
+    {
       version: 1,
       status: "sent",
       sentAt: new Date("2025-08-20"),
@@ -653,10 +753,28 @@ export async function seedAnchorProjects(
       margin: new Decimal("100000"),
       marginPercent: new Decimal("9.09"),
     },
-  });
+    [
+      {
+        type: "work",
+        name: "Townhouse shell works",
+        unit: "m²",
+        quantity: new Decimal("1800"),
+        unitCost: new Decimal("320"),
+        unitClient: new Decimal("350"),
+      },
+      {
+        type: "material",
+        name: "Roofing materials",
+        unit: "m²",
+        quantity: new Decimal("620"),
+        unitCost: new Decimal("180"),
+        unitClient: new Decimal("210"),
+      },
+    ]
+  );
 
   // Project 5: House Renovation "Konstancin Modern"
-  const { project: p5 } = await createProjectWithStages(
+  const { project: p5 } = await ensureProjectWithStages(
     {
       tenantId,
       name: 'House Renovation "Konstancin Modern"',
@@ -694,10 +812,9 @@ export async function seedAnchorProjects(
   );
 
   // Project 5 Estimate
-  await prisma.estimate.create({
-    data: {
-      tenantId,
-      projectId: p5.id,
+  await ensureEstimate(
+    p5.id,
+    {
       version: 1,
       status: "approved",
       approvedAt: new Date("2025-07-01"),
@@ -706,10 +823,28 @@ export async function seedAnchorProjects(
       margin: new Decimal("100000"),
       marginPercent: new Decimal("13.33"),
     },
-  });
+    [
+      {
+        type: "work",
+        name: "Interior renovation labor",
+        unit: "m²",
+        quantity: new Decimal("520"),
+        unitCost: new Decimal("450"),
+        unitClient: new Decimal("520"),
+      },
+      {
+        type: "material",
+        name: "Plumbing & electrical",
+        unit: "pcs",
+        quantity: new Decimal("120"),
+        unitCost: new Decimal("800"),
+        unitClient: new Decimal("920"),
+      },
+    ]
+  );
 
   // Project 6: Sports Complex "Warsaw Olympics"
-  const { project: p6 } = await createProjectWithStages(
+  const { project: p6 } = await ensureProjectWithStages(
     {
       tenantId,
       name: 'Sports Complex Addition "Warsaw Olympics"',
@@ -745,10 +880,9 @@ export async function seedAnchorProjects(
   );
 
   // Project 6 Estimates
-  await prisma.estimate.create({
-    data: {
-      tenantId,
-      projectId: p6.id,
+  await ensureEstimate(
+    p6.id,
+    {
       version: 1,
       status: "sent",
       sentAt: new Date("2025-11-15"),
@@ -757,10 +891,28 @@ export async function seedAnchorProjects(
       margin: new Decimal("400000"),
       marginPercent: new Decimal("7.69"),
     },
-  });
+    [
+      {
+        type: "work",
+        name: "Stadium expansion works",
+        unit: "m²",
+        quantity: new Decimal("4800"),
+        unitCost: new Decimal("700"),
+        unitClient: new Decimal("760"),
+      },
+      {
+        type: "material",
+        name: "Structural steel",
+        unit: "t",
+        quantity: new Decimal("210"),
+        unitCost: new Decimal("5200"),
+        unitClient: new Decimal("5800"),
+      },
+    ]
+  );
 
   // Project 7: Commercial Warehouse "Logistics Hub Łódź"
-  const { project: p7 } = await createProjectWithStages(
+  const { project: p7 } = await ensureProjectWithStages(
     {
       tenantId,
       name: 'Commercial Warehouse "Logistics Hub Łódź"',
@@ -795,10 +947,9 @@ export async function seedAnchorProjects(
   );
 
   // Project 7 Estimate
-  await prisma.estimate.create({
-    data: {
-      tenantId,
-      projectId: p7.id,
+  await ensureEstimate(
+    p7.id,
+    {
       version: 1,
       status: "draft",
       totalCost: new Decimal("1900000"),
@@ -807,12 +958,30 @@ export async function seedAnchorProjects(
       marginPercent: new Decimal("10.53"),
       notes: "Quotation stage - large industrial warehouse project",
     },
-  });
+    [
+      {
+        type: "work",
+        name: "Warehouse shell construction",
+        unit: "m²",
+        quantity: new Decimal("15000"),
+        unitCost: new Decimal("95"),
+        unitClient: new Decimal("110"),
+      },
+      {
+        type: "material",
+        name: "Insulated panels",
+        unit: "m²",
+        quantity: new Decimal("8800"),
+        unitCost: new Decimal("65"),
+        unitClient: new Decimal("78"),
+      },
+    ]
+  );
 
   console.log("✅ Created 7 projects with stages and estimates");
   console.log("   - Project 1: Villa Wilanów (3 estimate versions: draft→sent→approved)");
-  console.log("   - Project 2: Apartment Complex (sent)");
-  console.log("   - Project 3: Office Building (draft)");
+  console.log("   - Project 2: Apartment Complex (2 estimate versions: sent→approved)");
+  console.log("   - Project 3: Office Building (2 estimate versions: draft→sent)");
   console.log("   - Project 4: Townhouses (sent)");
   console.log("   - Project 5: House Renovation (completed)");
   console.log("   - Project 6: Sports Complex (sent)");
