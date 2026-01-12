@@ -2,7 +2,7 @@
 // Server Component - loads project data and renders builder
 
 import { EstimateBuilder } from "./estimate-builder";
-import { WorkCatalogService } from "@buildos/services";
+import { WorkCatalogService, RoomService } from "@buildos/services";
 import { getDemoContext } from "@/lib/demo-context";
 
 interface PageProps {
@@ -13,7 +13,9 @@ export default async function NewEstimatePage({ params }: PageProps) {
   const { id: projectId } = await params;
   const context = await getDemoContext();
   const workCatalog = new WorkCatalogService(context);
+  const roomService = new RoomService(context);
   const result = await workCatalog.getWorkTypes({ limit: 100 });
+  const roomsResult = await roomService.getRoomsByProjectId(projectId);
 
   const toNumber = (value: unknown) => {
     if (value && typeof value === "object" && "toNumber" in value) {
@@ -34,6 +36,14 @@ export default async function NewEstimatePage({ params }: PageProps) {
     clientUnitPrice: toNumber(workType.clientUnitPrice),
   }));
 
+  const rooms = roomsResult.map((room) => ({
+    id: room.id,
+    name: room.name,
+    area: room.area ? Number(room.area) : null,
+    perimeter: room.perimeter ? Number(room.perimeter) : null,
+    wallArea: room.wallArea ? Number(room.wallArea) : null,
+  }));
+
   return (
     <div className="container mx-auto py-8">
       <div className="mb-6">
@@ -43,7 +53,7 @@ export default async function NewEstimatePage({ params }: PageProps) {
         </p>
       </div>
 
-      <EstimateBuilder projectId={projectId} workTypes={workTypes} />
+      <EstimateBuilder projectId={projectId} workTypes={workTypes} rooms={rooms} />
     </div>
   );
 }

@@ -23,6 +23,7 @@ interface EstimateItem {
 interface EstimateBuilderProps {
   projectId: string;
   workTypes: WorkTypeOption[];
+  rooms: RoomOption[];
 }
 
 interface WorkTypeOption {
@@ -33,13 +34,31 @@ interface WorkTypeOption {
   clientUnitPrice: number;
 }
 
-export function EstimateBuilder({ projectId, workTypes }: EstimateBuilderProps) {
+interface RoomOption {
+  id: string;
+  name: string;
+  area: number | null;
+  perimeter: number | null;
+  wallArea: number | null;
+}
+
+export function EstimateBuilder({
+  projectId,
+  workTypes,
+  rooms,
+}: EstimateBuilderProps) {
   const [items, setItems] = useState<EstimateItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedWorkTypeId, setSelectedWorkTypeId] = useState(
     workTypes[0]?.id || ""
+  );
+  const [selectedRoomId, setSelectedRoomId] = useState<string>(
+    rooms[0]?.id || ""
+  );
+  const [selectedWorkTypeIds, setSelectedWorkTypeIds] = useState<Set<string>>(
+    new Set()
   );
 
   // Add new empty row
@@ -77,6 +96,92 @@ export function EstimateBuilder({ projectId, workTypes }: EstimateBuilderProps) 
     };
 
     setItems([...items, newItem]);
+  };
+
+  const toggleWorkTypeSelection = (id: string) => {
+    setSelectedWorkTypeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const inferSurface = (name: string) => {
+    const lower = name.toLowerCase();
+    if (lower.includes("wall") || lower.includes("ścian") || lower.includes("стен")) {
+      return "wall";
+    }
+    if (lower.includes("ceiling") || lower.includes("sufit") || lower.includes("потол")) {
+      return "ceiling";
+    }
+    if (lower.includes("floor") || lower.includes("podłog") || lower.includes("пол")) {
+      return "floor";
+    }
+    return "floor";
+  };
+
+  const getQuantityForWorkType = (workType: WorkTypeOption, room: RoomOption) => {
+    const unit = workType.unit.toLowerCase();
+    if (unit === "m2") {
+      const surface = inferSurface(workType.name);
+      const area =
+        surface === "wall" ? room.wallArea : surface === "ceiling" ? room.area : room.area;
+      return area ?? null;
+    }
+    if (unit === "m") {
+      return room.perimeter ?? null;
+    }
+    return 1;
+  };
+
+  const generateFromRoom = () => {
+    setError(null);
+    setSuccess(null);
+
+    const room = rooms.find((item) => item.id === selectedRoomId);
+    if (!room) {
+      setError("Select a room to generate items");
+      return;
+    }
+
+    if (selectedWorkTypeIds.size === 0) {
+      setError("Select at least one work type");
+      return;
+    }
+
+    const selectedWorkTypes = workTypes.filter((item) =>
+      selectedWorkTypeIds.has(item.id)
+    );
+
+    const newItems: EstimateItem[] = [];
+
+    for (const workType of selectedWorkTypes) {
+      const quantity = getQuantityForWorkType(workType, room);
+      if (quantity === null) {
+        setError("Room geometry is missing for the selected work types");
+        return;
+      }
+
+      newItems.push({
+        id: crypto.randomUUID(),
+        type: "work",
+        name: workType.name,
+        description: `Room: ${room.name}`,
+        unit: workType.unit,
+        quantity,
+        unitCost: workType.unitCost,
+        unitClient: workType.clientUnitPrice,
+        workTypeId: workType.id,
+      });
+    }
+
+    setItems([...items, ...newItems]);
+    setSelectedWorkTypeIds(new Set());
+    setSuccess("Items generated from room");
   };
 
   // Update item field
@@ -194,26 +299,73 @@ export function EstimateBuilder({ projectId, workTypes }: EstimateBuilderProps) 
   return (
     <div className="space-y-6">
       {workTypes.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-gray-700">Add from catalog</span>
-          <select
-            value={selectedWorkTypeId}
-            onChange={(event) => setSelectedWorkTypeId(event.target.value)}
-            className="border rounded px-2 py-1 text-sm"
-          >
-            {workTypes.map((workType) => (
-              <option key={workType.id} value={workType.id}>
-                {workType.name}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={addFromCatalog}
-            className="rounded-full bg-blue-600 px-3 py-1 text-sm font-semibold text-white hover:bg-blue-700"
-          >
-            Add item
-          </button>
+        <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">Add from catalog</span>
+            <select
+              value={selectedWorkTypeId}
+              onChange={(event) => setSelectedWorkTypeId(event.target.value)}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              {workTypes.map((workType) => (
+                <option key={workType.id} value={workType.id}>
+                  {workType.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={addFromCatalog}
+              className="rounded-full bg-blue-600 px-3 py-1 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Add item
+            </button>
+          </div>
+
+          {rooms.length > 0 && (
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <span className="text-sm font-medium text-gray-700">
+                  Generate from room geometry
+                </span>
+                <select
+                  value={selectedRoomId}
+                  onChange={(event) => setSelectedRoomId(event.target.value)}
+                  className="border rounded px-2 py-1 text-sm"
+                >
+                  {rooms.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      {room.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={generateFromRoom}
+                  className="rounded-full border border-blue-600 px-3 py-1 text-sm font-semibold text-blue-600 hover:bg-blue-50"
+                >
+                  Generate items
+                </button>
+              </div>
+
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {workTypes.map((workType) => (
+                  <label
+                    key={workType.id}
+                    className="flex items-center gap-2 text-sm text-gray-600"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedWorkTypeIds.has(workType.id)}
+                      onChange={() => toggleWorkTypeSelection(workType.id)}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                    />
+                    <span>{workType.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
       {/* Error/Success messages */}
