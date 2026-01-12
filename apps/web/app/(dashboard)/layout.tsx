@@ -64,7 +64,7 @@ export default async function DashboardLayout({
                 <span className="hidden lg:inline">Projects</span>
               </Link>
               <Link
-                href="/catalog/work-types"
+                href="/catalog"
                 className="flex items-center gap-3 rounded-lg px-2 lg:px-3 py-2 text-gray-600 hover:bg-gray-50"
               >
                 <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500">
@@ -161,7 +161,7 @@ export default async function DashboardLayout({
                 Projects
               </Link>
               <Link
-                href="/catalog/work-types"
+                href="/catalog"
                 className="rounded-full bg-gray-100 px-3 py-1 text-gray-700"
               >
                 Catalog
