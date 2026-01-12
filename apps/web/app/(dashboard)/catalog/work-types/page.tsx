@@ -36,6 +36,10 @@ export default async function WorkTypesPage() {
 
   const workTypes = result.data.map((workType) => ({
     ...workType,
+    translations: workType.translations.map((translation) => ({
+      ...translation,
+      description: translation.description ?? undefined,
+    })),
     unitCost: toNumber(workType.unitCost),
     clientUnitPrice: toNumber(workType.clientUnitPrice),
     laborNormHoursPerUnit: toNumber(workType.laborNormHoursPerUnit),
