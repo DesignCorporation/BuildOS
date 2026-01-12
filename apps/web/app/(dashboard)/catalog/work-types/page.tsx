@@ -6,6 +6,8 @@ import { UserRepository, prisma } from "@buildos/database";
 import { getDemoContext } from "@/lib/demo-context";
 import { WorkTypesClient } from "./work-types-client";
 
+export const dynamic = "force-dynamic";
+
 const toNumber = (value: unknown) => {
   if (value && typeof value === "object" && "toNumber" in value) {
     return (value as { toNumber: () => number }).toNumber();
