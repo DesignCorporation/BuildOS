@@ -1,7 +1,7 @@
 // BuildOS - Work Type Repository
 // Handles Work Catalog CRUD with tenant isolation
 
-import { WorkType, WorkTypeTranslation } from "../generated/client";
+import { WorkType, WorkTypeTranslation, Prisma } from "../generated/client";
 import type { Decimal } from "@prisma/client/runtime/library";
 import { BaseRepository } from "./base.repository";
 import { PaginationParams, PaginationResult } from "./types";
@@ -48,7 +48,7 @@ export class WorkTypeRepository extends BaseRepository {
     const { page = 1, limit = 20, search, includeInactive = false } = params || {};
     const skip = (page - 1) * limit;
 
-    const where = {
+    const where: Prisma.WorkTypeWhereInput = {
       ...this.createTenantFilter(),
       ...(includeInactive ? {} : { isActive: true }),
       ...(search
@@ -57,7 +57,7 @@ export class WorkTypeRepository extends BaseRepository {
               some: {
                 name: {
                   contains: search,
-                  mode: "insensitive",
+                  mode: Prisma.QueryMode.insensitive,
                 },
               },
             },
