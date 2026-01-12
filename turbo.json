@@ -26,15 +26,18 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "env": ["DATABASE_URL"]
     },
     "test:unit": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "env": ["DATABASE_URL"]
     },
     "test:integration": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "env": ["DATABASE_URL"]
     },
     "clean": {
       "cache": false
