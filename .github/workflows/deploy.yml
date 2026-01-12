@@ -261,8 +261,11 @@ jobs:
           # Run database migrations
           docker compose --project-directory "\$PWD" --project-name "$PROJECT_NAME" --env-file "\$env_file" -f "\$PWD/docker-compose.prod.yml" run --rm web npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma
 
-          # Restart services
-          docker compose --project-directory "\$PWD" --project-name "$PROJECT_NAME" --env-file "\$env_file" -f "\$PWD/docker-compose.prod.yml" up -d --force-recreate web
+          # Restart services (force pull in case tag didn't change)
+          docker compose --project-directory "\$PWD" --project-name "$PROJECT_NAME" --env-file "\$env_file" -f "\$PWD/docker-compose.prod.yml" up -d --force-recreate --pull always web
+
+          echo "🔍 Web image:"
+          docker inspect --format '{{.Image}}' ${PROJECT_NAME}-web || true
 
           # Cleanup old images
           docker image prune -f
