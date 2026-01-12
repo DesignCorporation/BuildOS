@@ -75,35 +75,44 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto px-4 py-10 space-y-8">
+      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm text-gray-500">Projects</p>
+          <h1 className="text-3xl font-semibold text-gray-900 mt-2">Projects</h1>
+          <p className="text-sm text-gray-600 mt-2">
             {pagination ? `${pagination.total} projects total` : "Loading..."}
           </p>
         </div>
-        <Link
-          href="/projects/new"
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + New Project
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm"
+            defaultValue="last-week"
+          >
+            <option value="last-week">Last week</option>
+            <option value="last-month">Last month</option>
+            <option value="last-quarter">Last quarter</option>
+          </select>
+          <Link
+            href="/projects/new"
+            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            New project
+          </Link>
+        </div>
       </div>
 
-      {/* Status Filter */}
-      <div className="flex gap-2 mb-6 overflow-x-auto">
+      <div className="flex flex-wrap gap-2">
         {statuses.map((s) => {
           const isActive = status === s.value;
           return (
             <Link
               key={s.label}
               href={`/projects${s.value ? `?status=${s.value}` : ""}`}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
                 isActive
                   ? "bg-blue-600 text-white"
-                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
               }`}
             >
               {s.label}
@@ -114,7 +123,7 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
 
       {/* Projects List */}
       {projects.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <div className="text-gray-400 mb-4">
             <svg
               className="w-24 h-24 mx-auto"
@@ -138,53 +147,53 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
           </p>
           <Link
             href="/projects/new"
-            className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             Create Project
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full table-fixed divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-400">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left font-medium">
                   Project Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left font-medium">
                   Client
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left font-medium">
                   Address
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left font-medium">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left font-medium">
                   Created
                 </th>
                 <th className="px-6 py-3"></th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-100">
               {projects.map((project: any) => (
                 <tr key={project.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <Link
                       href={`/projects/${project.id}`}
-                      className="text-blue-600 hover:text-blue-800 font-medium"
+                      className="text-gray-900 hover:text-blue-600 font-medium"
                     >
                       {project.name}
                     </Link>
                   </td>
                   <td
-                    className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate"
+                    className="px-6 py-4 text-gray-600 max-w-[200px] truncate"
                     title={project.clientName || "-"}
                   >
                     {project.clientName || "-"}
                   </td>
                   <td
-                    className="px-6 py-4 text-sm text-gray-600 max-w-[280px] truncate"
+                    className="px-6 py-4 text-gray-600 max-w-[280px] truncate"
                     title={project.address || "-"}
                   >
                     {project.address || "-"}
@@ -198,7 +207,7 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
                       {getStatusLabel(project.status)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-gray-600">
                     {formatDate(project.createdAt)}
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -218,16 +227,16 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="mt-6 flex justify-center gap-2">
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
           {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(
             (p) => (
               <Link
                 key={p}
                 href={`/projects?page=${p}${status ? `&status=${status}` : ""}`}
-                className={`px-4 py-2 rounded ${
+                className={`px-3 py-1.5 rounded-full text-sm ${
                   p === pagination.page
                     ? "bg-blue-600 text-white"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
               >
                 {p}
