@@ -20,7 +20,14 @@ export default async function ProjectPage({ params }: PageProps) {
     notFound();
   }
 
-  const { project, estimates, stages = [], photos = [], canViewCost } = result.data;
+  const {
+    project,
+    estimates,
+    stages = [],
+    photos = [],
+    rooms = [],
+    canViewCost,
+  } = result.data;
   const totalEstimates = estimates.length;
   const totalAmount = estimates.reduce(
     (sum, estimate) => sum + Number(estimate.totalClient || 0),
@@ -202,6 +209,7 @@ export default async function ProjectPage({ params }: PageProps) {
         estimates={estimates}
         stages={stages}
         photos={photos}
+        rooms={rooms}
         canViewCost={canViewCost}
       />
     </div>

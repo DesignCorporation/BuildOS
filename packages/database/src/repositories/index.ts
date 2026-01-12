@@ -9,3 +9,4 @@ export * from "./user.repository";
 export * from "./stage.repository";
 export * from "./photo.repository";
 export * from "./work-type.repository";
+export * from "./room.repository";

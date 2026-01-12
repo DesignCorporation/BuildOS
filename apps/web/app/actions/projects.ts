@@ -3,7 +3,13 @@
 // BuildOS - Project Server Actions
 // All operations go through ProjectService (NO direct Prisma/Repo access!)
 
-import { ProjectService, EstimateService, StageService, PhotoService } from "@buildos/services";
+import {
+  ProjectService,
+  EstimateService,
+  StageService,
+  PhotoService,
+  RoomService,
+} from "@buildos/services";
 import { UserRepository, prisma } from "@buildos/database";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -106,6 +112,7 @@ export async function getProjectByIdAction(id: string) {
     const estimateService = new EstimateService(context);
     const stageService = new StageService(context);
     const photoService = new PhotoService(context);
+    const roomService = new RoomService(context);
     const userRepo = new UserRepository(prisma, context);
 
     const project = await projectService.getProjectById(id);
@@ -191,6 +198,28 @@ export async function getProjectByIdAction(id: string) {
       console.warn("Failed to load photos for project:", photoError);
     }
 
+    // Load rooms for this project
+    let rooms: any[] = [];
+    try {
+      const rawRooms = await roomService.getRoomsByProjectId(id);
+      rooms = rawRooms.map((room: any) => ({
+        ...room,
+        length: room.length ? Number(room.length) : null,
+        width: room.width ? Number(room.width) : null,
+        height: room.height ? Number(room.height) : null,
+        area: room.area ? Number(room.area) : null,
+        perimeter: room.perimeter ? Number(room.perimeter) : null,
+        wallArea: room.wallArea ? Number(room.wallArea) : null,
+        tileHeightValue: room.tileHeightValue ? Number(room.tileHeightValue) : null,
+        createdAt: serializeDate(room.createdAt),
+        updatedAt: serializeDate(room.updatedAt),
+        deletedAt: serializeDate(room.deletedAt),
+      }));
+      rooms = sanitize(rooms);
+    } catch (roomError) {
+      console.warn("Failed to load rooms for project:", roomError);
+    }
+
     const serializedProject = {
       ...project,
       createdAt: serializeDate(project.createdAt),
@@ -211,6 +240,7 @@ export async function getProjectByIdAction(id: string) {
         estimates,
         stages,
         photos,
+        rooms,
         canViewCost,
       },
     };

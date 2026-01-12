@@ -12,6 +12,7 @@ import {
 } from "@/app/actions/projects";
 import { sendEstimateAction } from "@/app/actions/estimates";
 import { createPhotoAction } from "@/app/actions/photos";
+import { createRoomAction, updateRoomAction } from "@/app/actions/rooms";
 import { useRouter } from "next/navigation";
 
 interface Project {
@@ -67,12 +68,30 @@ interface Photo {
   createdAt?: Date | string | null;
 }
 
+interface Room {
+  id: string;
+  projectId: string;
+  name: string;
+  type?: string | null;
+  length?: number | null;
+  width?: number | null;
+  height?: number | null;
+  area?: number | null;
+  perimeter?: number | null;
+  wallArea?: number | null;
+  tileHeightMode?: string | null;
+  tileHeightValue?: number | null;
+  tileWallsSelector?: string | null;
+  notes?: string | null;
+}
+
 interface ProjectTabsProps {
   projectId: string;
   project: Project;
   estimates?: Estimate[];
   stages?: Stage[];
   photos?: Photo[];
+  rooms?: Room[];
   canViewCost?: boolean;
 }
 
@@ -84,6 +103,7 @@ export function ProjectTabs({
   estimates = [],
   stages = [],
   photos = [],
+  rooms = [],
   canViewCost = true,
 }: ProjectTabsProps) {
   const router = useRouter();
@@ -101,6 +121,20 @@ export function ProjectTabs({
     capturedAt: "",
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [roomsState, setRoomsState] = useState<Room[]>(rooms);
+  const [roomForm, setRoomForm] = useState({
+    name: "",
+    type: "",
+    length: "",
+    width: "",
+    height: "",
+    tileHeightMode: "full",
+    tileHeightValue: "",
+    tileWallsSelector: "all",
+  });
+  const [roomError, setRoomError] = useState<string | null>(null);
+  const [roomSuccess, setRoomSuccess] = useState<string | null>(null);
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const latestDraft = estimates
     .filter((estimate) => estimate.status === "draft")
     .sort((a, b) => b.version - a.version)[0];
@@ -178,6 +212,94 @@ export function ProjectTabs({
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     }).format(toNumber(value));
+
+  const formatNumber = (value?: number | null) => {
+    if (value === null || value === undefined) {
+      return "—";
+    }
+    return new Intl.NumberFormat("pl-PL", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const resetRoomForm = () => {
+    setRoomForm({
+      name: "",
+      type: "",
+      length: "",
+      width: "",
+      height: "",
+      tileHeightMode: "full",
+      tileHeightValue: "",
+      tileWallsSelector: "all",
+    });
+    setEditingRoomId(null);
+    setRoomError(null);
+    setRoomSuccess(null);
+  };
+
+  const handleEditRoom = (room: Room) => {
+    setEditingRoomId(room.id);
+    setRoomForm({
+      name: room.name,
+      type: room.type || "",
+      length: room.length ? String(room.length) : "",
+      width: room.width ? String(room.width) : "",
+      height: room.height ? String(room.height) : "",
+      tileHeightMode: room.tileHeightMode || "full",
+      tileHeightValue: room.tileHeightValue ? String(room.tileHeightValue) : "",
+      tileWallsSelector: room.tileWallsSelector || "all",
+    });
+    setRoomError(null);
+    setRoomSuccess(null);
+  };
+
+  const handleSaveRoom = async () => {
+    setRoomError(null);
+    setRoomSuccess(null);
+
+    if (!roomForm.name.trim()) {
+      setRoomError("Room name is required");
+      return;
+    }
+
+    const payload = {
+      projectId,
+      name: roomForm.name.trim(),
+      type: roomForm.type.trim() || undefined,
+      length: roomForm.length ? Number(roomForm.length) : undefined,
+      width: roomForm.width ? Number(roomForm.width) : undefined,
+      height: roomForm.height ? Number(roomForm.height) : undefined,
+      tileHeightMode: roomForm.tileHeightMode as "full" | "partial",
+      tileHeightValue:
+        roomForm.tileHeightMode === "partial" && roomForm.tileHeightValue
+          ? Number(roomForm.tileHeightValue)
+          : undefined,
+      tileWallsSelector: roomForm.tileWallsSelector as "all" | "selected",
+    };
+
+    const result = editingRoomId
+      ? await updateRoomAction(editingRoomId, payload)
+      : await createRoomAction(payload);
+
+    if (!result.success || !result.data) {
+      setRoomError(result.error || "Failed to save room");
+      return;
+    }
+
+    setRoomsState((prev) => {
+      const updated = result.data as Room;
+      if (editingRoomId) {
+        return prev.map((room) => (room.id === updated.id ? updated : room));
+      }
+      return [updated, ...prev];
+    });
+
+    setRoomSuccess(editingRoomId ? "Room updated" : "Room added");
+    resetRoomForm();
+    router.refresh();
+  };
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
@@ -377,6 +499,185 @@ export function ProjectTabs({
                   </div>
                 </div>
               )}
+
+              <div className="mt-8 border-t pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Rooms</h3>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {roomsState.map((room) => (
+                    <div
+                      key={room.id}
+                      className="rounded-lg border border-gray-200 p-4 bg-gray-50"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {room.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {room.type || "General"}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleEditRoom(room)}
+                          className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600">
+                        <div>Length: {formatNumber(room.length)} m</div>
+                        <div>Width: {formatNumber(room.width)} m</div>
+                        <div>Height: {formatNumber(room.height)} m</div>
+                        <div>Floor: {formatNumber(room.area)} m²</div>
+                        <div>Walls: {formatNumber(room.wallArea)} m²</div>
+                        <div>Perimeter: {formatNumber(room.perimeter)} m</div>
+                      </div>
+                    </div>
+                  ))}
+                  {roomsState.length === 0 && (
+                    <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+                      No rooms yet. Add the first room below.
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                      <label className="block text-xs font-medium uppercase text-gray-500">
+                        Room name
+                      </label>
+                      <input
+                        value={roomForm.name}
+                        onChange={(event) =>
+                          setRoomForm({ ...roomForm, name: event.target.value })
+                        }
+                        className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                        placeholder="Bathroom"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase text-gray-500">
+                        Room type
+                      </label>
+                      <input
+                        value={roomForm.type}
+                        onChange={(event) =>
+                          setRoomForm({ ...roomForm, type: event.target.value })
+                        }
+                        className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                        placeholder="Bathroom"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase text-gray-500">
+                        Length (m)
+                      </label>
+                      <input
+                        value={roomForm.length}
+                        onChange={(event) =>
+                          setRoomForm({ ...roomForm, length: event.target.value })
+                        }
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase text-gray-500">
+                        Width (m)
+                      </label>
+                      <input
+                        value={roomForm.width}
+                        onChange={(event) =>
+                          setRoomForm({ ...roomForm, width: event.target.value })
+                        }
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase text-gray-500">
+                        Height (m)
+                      </label>
+                      <input
+                        value={roomForm.height}
+                        onChange={(event) =>
+                          setRoomForm({ ...roomForm, height: event.target.value })
+                        }
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase text-gray-500">
+                        Tile height mode
+                      </label>
+                      <select
+                        value={roomForm.tileHeightMode}
+                        onChange={(event) =>
+                          setRoomForm({ ...roomForm, tileHeightMode: event.target.value })
+                        }
+                        className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                      >
+                        <option value="full">Full height</option>
+                        <option value="partial">Partial height</option>
+                      </select>
+                    </div>
+                    {roomForm.tileHeightMode === "partial" && (
+                      <div>
+                        <label className="block text-xs font-medium uppercase text-gray-500">
+                          Tile height (m)
+                        </label>
+                        <input
+                          value={roomForm.tileHeightValue}
+                          onChange={(event) =>
+                            setRoomForm({ ...roomForm, tileHeightValue: event.target.value })
+                          }
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {roomError && (
+                    <div className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {roomError}
+                    </div>
+                  )}
+                  {roomSuccess && (
+                    <div className="mt-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                      {roomSuccess}
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      onClick={handleSaveRoom}
+                      className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                    >
+                      {editingRoomId ? "Update Room" : "Add Room"}
+                    </button>
+                    {editingRoomId && (
+                      <button
+                        onClick={resetRoomForm}
+                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="mt-6 pt-6 border-t flex gap-3">

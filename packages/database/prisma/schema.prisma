@@ -177,6 +177,9 @@ model Room {
   area      Decimal?  @db.Decimal(10, 3) // calculated: length * width
   perimeter Decimal?  @db.Decimal(10, 3) // calculated: 2 * (length + width)
   wallArea  Decimal?  @db.Decimal(10, 3) // calculated: perimeter * height
+  tileHeightMode String?  @default("full") // full | partial
+  tileHeightValue Decimal? @db.Decimal(10, 3)
+  tileWallsSelector String? @default("all") // all | selected (v1 uses all)
   notes     String?   @db.Text
   tags      String[]  @default([])
   order     Int       @default(0)
