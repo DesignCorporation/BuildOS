@@ -12,7 +12,7 @@ import {
 type WorkTypeTranslation = {
   locale: string;
   name: string;
-  description?: string | null;
+  description?: string;
 };
 
 type WorkTypeRow = {

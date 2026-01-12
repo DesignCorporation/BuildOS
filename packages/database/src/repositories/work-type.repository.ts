@@ -9,7 +9,7 @@ import { PaginationParams, PaginationResult } from "./types";
 export interface WorkTypeTranslationInput {
   locale: string;
   name: string;
-  description?: string | null;
+  description?: string;
 }
 
 export interface CreateWorkTypeInput {

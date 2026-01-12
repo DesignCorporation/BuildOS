@@ -3,6 +3,7 @@
 
 import { prisma, RoomRepository, CreateRoomInput, UpdateRoomInput } from "@buildos/database";
 import { RepositoryContext } from "@buildos/database";
+import type { Decimal } from "@prisma/client/runtime/library";
 
 export interface RoomGeometry {
   area: number | null;
@@ -10,6 +11,9 @@ export interface RoomGeometry {
   wallArea: number | null;
   ceilingArea: number | null;
 }
+
+const toNumber = (value: number | Decimal | null | undefined) =>
+  value === null || value === undefined ? null : Number(value);
 
 export function calculateRoomGeometry(input: {
   length?: number | null;
@@ -60,11 +64,11 @@ export class RoomService {
 
   async createRoom(input: CreateRoomInput) {
     const geometry = calculateRoomGeometry({
-      length: input.length ?? null,
-      width: input.width ?? null,
-      height: input.height ?? null,
+      length: toNumber(input.length),
+      width: toNumber(input.width),
+      height: toNumber(input.height),
       tileHeightMode: input.tileHeightMode ?? null,
-      tileHeightValue: input.tileHeightValue ?? null,
+      tileHeightValue: toNumber(input.tileHeightValue),
     });
 
     return this.roomRepo.create({
@@ -82,12 +86,13 @@ export class RoomService {
     }
 
     const geometry = calculateRoomGeometry({
-      length: input.length ?? (existing.length ? Number(existing.length) : null),
-      width: input.width ?? (existing.width ? Number(existing.width) : null),
-      height: input.height ?? (existing.height ? Number(existing.height) : null),
+      length: toNumber(input.length ?? existing.length ?? null),
+      width: toNumber(input.width ?? existing.width ?? null),
+      height: toNumber(input.height ?? existing.height ?? null),
       tileHeightMode: input.tileHeightMode ?? existing.tileHeightMode ?? "full",
-      tileHeightValue:
-        input.tileHeightValue ?? (existing.tileHeightValue ? Number(existing.tileHeightValue) : null),
+      tileHeightValue: toNumber(
+        input.tileHeightValue ?? existing.tileHeightValue ?? null
+      ),
     });
 
     return this.roomRepo.update(id, {
