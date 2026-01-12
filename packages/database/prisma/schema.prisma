@@ -384,9 +384,12 @@ model MaterialCatalogTranslation {
 model WorkType {
   id        String   @id @default(cuid())
   tenantId  String
+  code      String?
   category  String?
   unit      String // e.g., "m2", "hours"
   unitCost  Decimal  @db.Decimal(12, 2)
+  clientUnitPrice      Decimal @db.Decimal(12, 2)
+  laborNormHoursPerUnit Decimal @db.Decimal(10, 3) @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -396,6 +399,7 @@ model WorkType {
   translations  WorkTypeTranslation[] // i18n (ADR-08)
   estimateItems EstimateItem[]
 
+  @@unique([tenantId, code])
   @@index([tenantId])
   @@index([category])
   @@map("work_types")

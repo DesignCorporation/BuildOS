@@ -7,6 +7,115 @@ import { seedAnchorProjects } from "./seed-anchor-projects";
 
 const prisma = new PrismaClient();
 
+async function seedWorkTypes(prismaClient: PrismaClient, tenantId: string) {
+  const workTypes = [
+    {
+      code: "wall-putty",
+      category: "Finishing",
+      unit: "m2",
+      unitCost: 12,
+      clientUnitPrice: 28,
+      laborNormHoursPerUnit: 0.25,
+      translations: [
+        { locale: "pl", name: "Szpachlowanie ścian" },
+        { locale: "ru", name: "Шпаклевка стен" },
+      ],
+    },
+    {
+      code: "ceiling-paint",
+      category: "Finishing",
+      unit: "m2",
+      unitCost: 10,
+      clientUnitPrice: 24,
+      laborNormHoursPerUnit: 0.2,
+      translations: [
+        { locale: "pl", name: "Malowanie sufitu" },
+        { locale: "ru", name: "Покраска потолка" },
+      ],
+    },
+    {
+      code: "floor-tiles",
+      category: "Finishing",
+      unit: "m2",
+      unitCost: 45,
+      clientUnitPrice: 110,
+      laborNormHoursPerUnit: 0.5,
+      translations: [
+        { locale: "pl", name: "Układanie płytek podłogowych" },
+        { locale: "ru", name: "Укладка напольной плитки" },
+      ],
+    },
+    {
+      code: "electrical-rough-in",
+      category: "Electrical",
+      unit: "m2",
+      unitCost: 18,
+      clientUnitPrice: 40,
+      laborNormHoursPerUnit: 0.3,
+      translations: [
+        { locale: "pl", name: "Instalacja elektryczna (stan surowy)" },
+        { locale: "ru", name: "Черновая электрика" },
+      ],
+    },
+    {
+      code: "plumbing-rough-in",
+      category: "Plumbing",
+      unit: "m2",
+      unitCost: 20,
+      clientUnitPrice: 45,
+      laborNormHoursPerUnit: 0.35,
+      translations: [
+        { locale: "pl", name: "Instalacja wod-kan (stan surowy)" },
+        { locale: "ru", name: "Черновая сантехника" },
+      ],
+    },
+  ];
+
+  for (const workType of workTypes) {
+    await prismaClient.workType.upsert({
+      where: {
+        tenantId_code: {
+          tenantId,
+          code: workType.code,
+        },
+      },
+      update: {
+        category: workType.category,
+        unit: workType.unit,
+        unitCost: workType.unitCost,
+        clientUnitPrice: workType.clientUnitPrice,
+        laborNormHoursPerUnit: workType.laborNormHoursPerUnit,
+        isActive: true,
+        translations: {
+          deleteMany: {},
+          create: workType.translations.map((translation) => ({
+            locale: translation.locale,
+            name: translation.name,
+            description: null,
+          })),
+        },
+      },
+      create: {
+        tenantId,
+        code: workType.code,
+        category: workType.category,
+        unit: workType.unit,
+        unitCost: workType.unitCost,
+        clientUnitPrice: workType.clientUnitPrice,
+        laborNormHoursPerUnit: workType.laborNormHoursPerUnit,
+        isActive: true,
+        translations: {
+          create: workType.translations.map((translation) => ({
+            locale: translation.locale,
+            name: translation.name,
+            description: null,
+          })),
+        },
+      },
+    });
+  }
+}
+
 async function main() {
   console.log("🌱 Seeding database...");
 
@@ -22,6 +131,8 @@ async function main() {
   });
 
   console.log("✅ Created tenant:", tenant.name);
+  await seedWorkTypes(prisma, tenant.id);
+  console.log("✅ Seeded work catalog for demo tenant");
 
   // Create Base Permissions (global, no tenantId)
   const permissions = [
@@ -584,6 +695,8 @@ async function main() {
   });
 
   console.log("✅ Created ANCHOR users: 1 owner, 2 PMs, 2 clients");
+  await seedWorkTypes(prisma, anchorTenant.id);
+  console.log("✅ Seeded work catalog for ANCHOR tenant");
 
   console.log("\n🔐 RBAC Setup (ANCHOR):");
   console.log("   - Owner: Full access + view_cost");

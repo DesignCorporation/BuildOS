@@ -63,6 +63,22 @@ export default async function DashboardLayout({
                 </span>
                 <span className="hidden lg:inline">Projects</span>
               </Link>
+              <Link
+                href="/catalog/work-types"
+                className="flex items-center gap-3 rounded-lg px-2 lg:px-3 py-2 text-gray-600 hover:bg-gray-50"
+              >
+                <span className="inline-flex h-5 w-5 items-center justify-center text-gray-500">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 6.5h16M4 12h16M4 17.5h16"
+                    />
+                  </svg>
+                </span>
+                <span className="hidden lg:inline">Catalog</span>
+              </Link>
               <span className="flex items-center gap-3 rounded-lg px-2 lg:px-3 py-2 text-gray-400">
                 <span className="inline-flex h-5 w-5 items-center justify-center text-gray-400">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -143,6 +159,12 @@ export default async function DashboardLayout({
                 className="rounded-full bg-gray-100 px-3 py-1 text-gray-700"
               >
                 Projects
+              </Link>
+              <Link
+                href="/catalog/work-types"
+                className="rounded-full bg-gray-100 px-3 py-1 text-gray-700"
+              >
+                Catalog
               </Link>
               <span className="rounded-full bg-gray-50 px-3 py-1 text-gray-400">
                 Estimates

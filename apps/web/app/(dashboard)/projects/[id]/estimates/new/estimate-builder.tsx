@@ -17,17 +17,30 @@ interface EstimateItem {
   quantity: number;
   unitCost: number;
   unitClient: number;
+  workTypeId?: string;
 }
 
 interface EstimateBuilderProps {
   projectId: string;
+  workTypes: WorkTypeOption[];
 }
 
-export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
+interface WorkTypeOption {
+  id: string;
+  name: string;
+  unit: string;
+  unitCost: number;
+  clientUnitPrice: number;
+}
+
+export function EstimateBuilder({ projectId, workTypes }: EstimateBuilderProps) {
   const [items, setItems] = useState<EstimateItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedWorkTypeId, setSelectedWorkTypeId] = useState(
+    workTypes[0]?.id || ""
+  );
 
   // Add new empty row
   const addItem = () => {
@@ -41,6 +54,28 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
       unitCost: 0,
       unitClient: 0,
     };
+    setItems([...items, newItem]);
+  };
+
+  const addFromCatalog = () => {
+    const workType = workTypes.find((item) => item.id === selectedWorkTypeId);
+    if (!workType) {
+      setError("Select a work type from the catalog");
+      return;
+    }
+
+    const newItem: EstimateItem = {
+      id: crypto.randomUUID(),
+      type: "work",
+      name: workType.name,
+      description: "",
+      unit: workType.unit,
+      quantity: 1,
+      unitCost: workType.unitCost,
+      unitClient: workType.clientUnitPrice,
+      workTypeId: workType.id,
+    };
+
     setItems([...items, newItem]);
   };
 
@@ -158,6 +193,29 @@ export function EstimateBuilder({ projectId }: EstimateBuilderProps) {
 
   return (
     <div className="space-y-6">
+      {workTypes.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
+          <span className="text-sm font-medium text-gray-700">Add from catalog</span>
+          <select
+            value={selectedWorkTypeId}
+            onChange={(event) => setSelectedWorkTypeId(event.target.value)}
+            className="border rounded px-2 py-1 text-sm"
+          >
+            {workTypes.map((workType) => (
+              <option key={workType.id} value={workType.id}>
+                {workType.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={addFromCatalog}
+            className="rounded-full bg-blue-600 px-3 py-1 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Add item
+          </button>
+        </div>
+      )}
       {/* Error/Success messages */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
