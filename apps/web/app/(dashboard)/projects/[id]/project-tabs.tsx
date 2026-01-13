@@ -680,8 +680,11 @@ export function ProjectTabs({
     { id: "stages", label: "Stages" },
     { id: "photos", label: "Photos" },
     { id: "contracts", label: "Contracts" },
-    ...(canViewInvoices ? [{ id: "invoices", label: "Invoices" }] : []),
   ];
+
+  if (canViewInvoices) {
+    tabs.push({ id: "invoices", label: "Invoices" });
+  }
 
   return (
     <>
