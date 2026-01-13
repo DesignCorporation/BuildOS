@@ -42,6 +42,16 @@ interface RoomOption {
   wallArea: number | null;
 }
 
+type SurfaceKey = "walls" | "floor" | "ceiling" | "perimeter" | "other";
+
+const surfaceLabels: Record<SurfaceKey, string> = {
+  walls: "Walls",
+  floor: "Floor",
+  ceiling: "Ceiling",
+  perimeter: "Perimeter",
+  other: "Other",
+};
+
 export function EstimateBuilder({
   projectId,
   workTypes,
@@ -110,10 +120,10 @@ export function EstimateBuilder({
     });
   };
 
-  const inferSurface = (name: string) => {
+  const inferSurface = (name: string): SurfaceKey => {
     const lower = name.toLowerCase();
     if (lower.includes("wall") || lower.includes("ścian") || lower.includes("стен")) {
-      return "wall";
+      return "walls";
     }
     if (lower.includes("ceiling") || lower.includes("sufit") || lower.includes("потол")) {
       return "ceiling";
@@ -121,7 +131,53 @@ export function EstimateBuilder({
     if (lower.includes("floor") || lower.includes("podłog") || lower.includes("пол")) {
       return "floor";
     }
-    return "floor";
+    return "other";
+  };
+
+  const getSurfaceMeta = (workType: WorkTypeOption, room: RoomOption | null) => {
+    const unit = workType.unit.toLowerCase();
+    if (unit === "m2") {
+      const surface = inferSurface(workType.name);
+      const quantity =
+        surface === "walls"
+          ? room?.wallArea ?? null
+          : surface === "ceiling"
+            ? room?.area ?? null
+            : surface === "floor"
+              ? room?.area ?? null
+              : room?.area ?? null;
+      const formula =
+        surface === "walls"
+          ? "wallArea"
+          : surface === "ceiling"
+            ? "ceilingArea"
+            : surface === "floor"
+              ? "floorArea"
+              : "area";
+      return {
+        surface,
+        formula,
+        quantity,
+        unitLabel: "m²",
+        missing: quantity === null,
+      };
+    }
+    if (unit === "m") {
+      return {
+        surface: "perimeter" as const,
+        formula: "perimeter",
+        quantity: room?.perimeter ?? null,
+        unitLabel: "m",
+        missing: room?.perimeter == null,
+      };
+    }
+    return {
+      surface: "other" as const,
+      formula: "unit",
+      quantity: 1,
+      unitLabel: unit,
+      missing: false,
+    };
   };
 
   const getQuantityForWorkType = (workType: WorkTypeOption, room: RoomOption) => {
@@ -129,7 +185,7 @@ export function EstimateBuilder({
     if (unit === "m2") {
       const surface = inferSurface(workType.name);
       const area =
-        surface === "wall" ? room.wallArea : surface === "ceiling" ? room.area : room.area;
+        surface === "walls" ? room.wallArea : surface === "ceiling" ? room.area : room.area;
       return area ?? null;
     }
     if (unit === "m") {
@@ -348,22 +404,80 @@ export function EstimateBuilder({
                 </button>
               </div>
 
-              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                {workTypes.map((workType) => (
-                  <label
-                    key={workType.id}
-                    className="flex items-center gap-2 text-sm text-gray-600"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedWorkTypeIds.has(workType.id)}
-                      onChange={() => toggleWorkTypeSelection(workType.id)}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                    />
-                    <span>{workType.name}</span>
-                  </label>
-                ))}
-              </div>
+              {(() => {
+                const room = rooms.find((item) => item.id === selectedRoomId) || null;
+                const grouped = workTypes.reduce<Record<SurfaceKey, WorkTypeOption[]>>(
+                  (acc, workType) => {
+                    const meta = getSurfaceMeta(workType, room);
+                    acc[meta.surface].push(workType);
+                    return acc;
+                  },
+                  { walls: [], floor: [], ceiling: [], perimeter: [], other: [] }
+                );
+
+                const requiresGeometry = workTypes.some((workType) => {
+                  const unit = workType.unit.toLowerCase();
+                  return unit === "m2" || unit === "m";
+                });
+                const hasGeometry =
+                  room?.area != null || room?.wallArea != null || room?.perimeter != null;
+
+                return (
+                  <div className="space-y-4">
+                    {requiresGeometry && !hasGeometry && (
+                      <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                        Room dimensions are missing. Fill in room geometry to see accurate quantities.
+                      </div>
+                    )}
+
+                    {(Object.keys(grouped) as SurfaceKey[]).map((groupKey) => {
+                      const entries = grouped[groupKey];
+                      if (entries.length === 0) {
+                        return null;
+                      }
+
+                      return (
+                        <div key={groupKey}>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                            {surfaceLabels[groupKey]}
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                            {entries.map((workType) => {
+                              const meta = getSurfaceMeta(workType, room);
+                              return (
+                                <label
+                                  key={workType.id}
+                                  className="flex items-start gap-2 rounded-md border border-gray-200 bg-white p-2 text-sm text-gray-700"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedWorkTypeIds.has(workType.id)}
+                                    onChange={() => toggleWorkTypeSelection(workType.id)}
+                                    className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600"
+                                  />
+                                  <span className="flex-1">
+                                    <span className="flex items-center gap-2">
+                                      <span className="font-medium">{workType.name}</span>
+                                      <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                                        {meta.formula}
+                                      </span>
+                                    </span>
+                                    <span className="mt-1 block text-xs text-gray-500">
+                                      {meta.missing
+                                        ? "Missing room geometry"
+                                        : `Qty: ${meta.quantity} ${meta.unitLabel}`}
+                                    </span>
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

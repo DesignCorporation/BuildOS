@@ -21,6 +21,7 @@
 - **[RBAC Matrix](./product/rbac-matrix.md)** - Матрица ролей и прав доступа
 - **[User Flows MVP](./product/user-flows-mvp.md)** - Карта экранов и пользовательские сценарии
 - **[Estimate Formulas](./product/estimate-formulas.md)** - Формулы расчёта смет и бизнес-правила
+- **[Invoice Workflow](./product/invoices-workflow.md)** - Выставление счетов и payment gating
 - **[Project Templates](./product/project-templates.md)** - Шаблоны объектов (квартира/дом/коммерция)
 - **[i18n & Multi-currency](./product/i18n-multicurrency.md)** - Интернационализация и мультивалютность
 - **[Billing & Payments](./product/billing-payments.md)** - Биллинг и подписки
@@ -69,4 +70,4 @@
 
 ---
 
-**Обновлено:** 2026-01-02
+**Обновлено:** 2026-01-13

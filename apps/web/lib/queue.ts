@@ -44,3 +44,56 @@ export async function addPdfGenerationJob(data: GeneratePdfJobData) {
 
   return job;
 }
+
+// Invoice Management Queue
+export const invoiceQueue = new Queue("invoice-management", {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: {
+      type: "exponential",
+      delay: 5000,
+    },
+    removeOnComplete: {
+      age: 24 * 3600, // Keep for 24 hours
+      count: 100,
+    },
+    removeOnFail: {
+      age: 7 * 24 * 3600, // Keep failures for 7 days
+    },
+  },
+});
+
+// Job data interface
+export interface CheckOverdueJobData {
+  timestamp: string; // ISO timestamp when job was triggered
+}
+
+// Helper to add scheduled job
+export async function scheduleOverdueCheck() {
+  // Remove existing repeatable jobs (for restart scenarios)
+  const repeatableJobs = await invoiceQueue.getRepeatableJobs();
+  for (const job of repeatableJobs) {
+    if (job.name === "check-overdue-invoices") {
+      await invoiceQueue.removeRepeatableByKey(job.key);
+    }
+  }
+
+  // Add repeatable job
+  const job = await invoiceQueue.add(
+    "check-overdue-invoices",
+    { timestamp: new Date().toISOString() },
+    {
+      repeat: {
+        pattern: process.env.INVOICE_OVERDUE_CRON || "0 */6 * * *", // Every 6 hours
+        immediately: true, // Run on startup
+      },
+      jobId: "invoice-overdue-checker", // Single instance
+    }
+  );
+
+  console.log(
+    `[Invoice Queue] Scheduled overdue check: ${job.opts.repeat?.pattern}`
+  );
+  return job;
+}

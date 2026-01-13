@@ -25,7 +25,7 @@ export class InvoiceService {
   }
 
   async getInvoicesByProjectId(projectId: string) {
-    await this.invoiceRepo.markOverdue(new Date());
+    // Overdue check now done via cron job (invoice-worker)
     return this.invoiceRepo.findByProjectId(projectId, { limit: 50 });
   }
 
@@ -35,5 +35,10 @@ export class InvoiceService {
 
   async markPaid(id: string) {
     return this.invoiceRepo.updateStatus(id, "paid");
+  }
+
+  // Manual trigger for admin use (normally done by cron)
+  async checkOverdueInvoices() {
+    return this.invoiceRepo.markOverdue(new Date());
   }
 }
