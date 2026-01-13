@@ -674,14 +674,14 @@ export function ProjectTabs({
     }
   };
 
-  const tabs: { id: TabName; label: string; hidden?: boolean }[] = [
+  const tabs: { id: TabName; label: string }[] = [
     { id: "details", label: "Details" },
     { id: "estimates", label: "Estimates" },
     { id: "stages", label: "Stages" },
     { id: "photos", label: "Photos" },
     { id: "contracts", label: "Contracts" },
-    { id: "invoices", label: "Invoices", hidden: !canViewInvoices },
-  ].filter((tab) => !tab.hidden);
+    ...(canViewInvoices ? [{ id: "invoices", label: "Invoices" }] : []),
+  ];
 
   return (
     <>
