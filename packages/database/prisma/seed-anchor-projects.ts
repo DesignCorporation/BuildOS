@@ -219,6 +219,44 @@ export async function seedAnchorProjects(
     });
   }
 
+  async function ensureInvoice(input: {
+    projectId: string;
+    contractId?: string;
+    number: string;
+    status?: string;
+    issueDate: Date;
+    dueDate?: Date;
+    amount: Decimal | string | number;
+    currency?: string;
+    notes?: string;
+  }) {
+    const existing = await prisma.invoice.findFirst({
+      where: {
+        tenantId,
+        number: input.number,
+      },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return prisma.invoice.create({
+      data: {
+        tenantId,
+        projectId: input.projectId,
+        contractId: input.contractId ?? null,
+        number: input.number,
+        status: input.status ?? "issued",
+        issueDate: input.issueDate,
+        dueDate: input.dueDate ?? null,
+        amount: input.amount,
+        currency: input.currency ?? "PLN",
+        notes: input.notes ?? null,
+      },
+    });
+  }
+
   async function createPhoto(input: {
     projectId: string;
     stageId?: string;
@@ -393,7 +431,7 @@ export async function seedAnchorProjects(
     });
   }
 
-  await ensureContract(
+  const p1Contract = await ensureContract(
     p1.id,
     {
       number: "CN-2026-001",
@@ -419,6 +457,17 @@ export async function seedAnchorProjects(
       },
     ]
   );
+
+  await ensureInvoice({
+    projectId: p1.id,
+    contractId: p1Contract?.id,
+    number: "INV-2026-001",
+    status: "issued",
+    issueDate: new Date("2025-11-20"),
+    dueDate: new Date("2025-12-05"),
+    amount: new Decimal("250000"),
+    notes: "Initial deposit invoice for Villa Wilanów Heights.",
+  });
 
   // Project 1 Estimates (3 versions)
   await ensureEstimate(

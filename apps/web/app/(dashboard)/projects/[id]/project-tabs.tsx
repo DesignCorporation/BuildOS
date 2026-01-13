@@ -13,6 +13,7 @@ import {
 import { sendEstimateAction } from "@/app/actions/estimates";
 import { createPhotoAction } from "@/app/actions/photos";
 import { createContractAction } from "@/app/actions/contracts";
+import { createInvoiceAction, markInvoicePaidAction } from "@/app/actions/invoices";
 import { createRoomAction, updateRoomAction } from "@/app/actions/rooms";
 import { useRouter } from "next/navigation";
 
@@ -103,6 +104,19 @@ interface Contract {
   milestones: ContractMilestone[];
 }
 
+interface Invoice {
+  id: string;
+  projectId?: string | null;
+  contractId?: string | null;
+  number: string;
+  status: string;
+  issueDate: Date | string;
+  dueDate?: Date | string | null;
+  amount: number;
+  currency: string;
+  notes?: string | null;
+}
+
 interface ProjectTabsProps {
   projectId: string;
   project: Project;
@@ -111,10 +125,13 @@ interface ProjectTabsProps {
   photos?: Photo[];
   rooms?: Room[];
   contracts?: Contract[];
+  invoices?: Invoice[];
   canViewCost?: boolean;
+  canViewInvoices?: boolean;
+  canManageInvoices?: boolean;
 }
 
-type TabName = "details" | "estimates" | "stages" | "photos" | "contracts";
+type TabName = "details" | "estimates" | "stages" | "photos" | "contracts" | "invoices";
 
 export function ProjectTabs({
   projectId,
@@ -124,7 +141,10 @@ export function ProjectTabs({
   photos = [],
   rooms = [],
   contracts = [],
+  invoices = [],
   canViewCost = true,
+  canViewInvoices = true,
+  canManageInvoices = true,
 }: ProjectTabsProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabName>("details");
@@ -168,12 +188,27 @@ export function ProjectTabs({
   });
   const [contractError, setContractError] = useState<string | null>(null);
   const [contractSuccess, setContractSuccess] = useState<string | null>(null);
+  const [invoicesState, setInvoicesState] = useState<Invoice[]>(invoices);
+  const [invoiceForm, setInvoiceForm] = useState({
+    number: "",
+    amount: "",
+    currency: "PLN",
+    issueDate: "",
+    dueDate: "",
+    contractId: "",
+    notes: "",
+  });
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  const [invoiceSuccess, setInvoiceSuccess] = useState<string | null>(null);
   const latestDraft = estimates
     .filter((estimate) => estimate.status === "draft")
     .sort((a, b) => b.version - a.version)[0];
   const hasClientEmail = Boolean(project.clientEmail);
 
   const isArchived = project.deletedAt !== null && project.deletedAt !== undefined;
+  const contractLookup = new Map(
+    contractsState.map((contract) => [contract.id, contract.number])
+  );
 
   const formatDate = (value?: Date | string | null) => {
     if (!value) {
@@ -437,6 +472,88 @@ export function ProjectTabs({
     router.refresh();
   };
 
+  const handleCreateInvoice = async () => {
+    setInvoiceError(null);
+    setInvoiceSuccess(null);
+
+    if (!invoiceForm.number.trim()) {
+      setInvoiceError("Invoice number is required");
+      return;
+    }
+    const amount = Number(invoiceForm.amount);
+    if (!amount || amount <= 0) {
+      setInvoiceError("Amount must be positive");
+      return;
+    }
+    if (!invoiceForm.issueDate) {
+      setInvoiceError("Issue date is required");
+      return;
+    }
+
+    const result = await createInvoiceAction({
+      projectId,
+      contractId: invoiceForm.contractId || undefined,
+      number: invoiceForm.number.trim(),
+      amount,
+      currency: invoiceForm.currency || "PLN",
+      issueDate: invoiceForm.issueDate,
+      dueDate: invoiceForm.dueDate || undefined,
+      notes: invoiceForm.notes.trim() || undefined,
+    });
+
+    if (!result.success || !result.data) {
+      setInvoiceError(result.error || "Failed to create invoice");
+      return;
+    }
+
+    const normalizedInvoice: Invoice = {
+      id: result.data.id,
+      projectId: result.data.projectId ?? projectId,
+      contractId: result.data.contractId ?? null,
+      number: result.data.number,
+      status: result.data.status ?? "issued",
+      issueDate: result.data.issueDate,
+      dueDate: result.data.dueDate,
+      amount: Number(result.data.amount ?? amount),
+      currency: result.data.currency ?? invoiceForm.currency,
+      notes: result.data.notes ?? null,
+    };
+
+    setInvoicesState((prev) => [normalizedInvoice, ...prev]);
+    setInvoiceSuccess("Invoice created");
+    setInvoiceForm({
+      number: "",
+      amount: "",
+      currency: invoiceForm.currency || "PLN",
+      issueDate: "",
+      dueDate: "",
+      contractId: "",
+      notes: "",
+    });
+    router.refresh();
+  };
+
+  const handleMarkInvoicePaid = async (invoiceId: string) => {
+    setInvoiceError(null);
+    setInvoiceSuccess(null);
+
+    const result = await markInvoicePaidAction(invoiceId, projectId);
+    if (!result.success || !result.data) {
+      setInvoiceError(result.error || "Failed to update invoice");
+      return;
+    }
+
+    setInvoicesState((prev) =>
+      prev.map((invoice) =>
+        invoice.id === invoiceId
+          ? { ...invoice, status: "paid" }
+          : invoice
+      )
+    );
+    setInvoiceSuccess("Invoice marked as paid");
+    router.refresh();
+  };
+
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
       draft: "bg-gray-100 text-gray-800",
@@ -453,6 +570,24 @@ export function ProjectTabs({
       sent: "Sent",
       approved: "Approved",
       rejected: "Rejected",
+    };
+    return labels[status] || status;
+  };
+
+  const getInvoiceStatusBadge = (status: string) => {
+    const badges: Record<string, string> = {
+      issued: "bg-blue-100 text-blue-800",
+      paid: "bg-green-100 text-green-800",
+      overdue: "bg-red-100 text-red-800",
+    };
+    return badges[status] || "bg-gray-100 text-gray-800";
+  };
+
+  const getInvoiceStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      issued: "Issued",
+      paid: "Paid",
+      overdue: "Overdue",
     };
     return labels[status] || status;
   };
@@ -539,13 +674,14 @@ export function ProjectTabs({
     }
   };
 
-  const tabs: { id: TabName; label: string }[] = [
+  const tabs: { id: TabName; label: string; hidden?: boolean }[] = [
     { id: "details", label: "Details" },
     { id: "estimates", label: "Estimates" },
     { id: "stages", label: "Stages" },
     { id: "photos", label: "Photos" },
     { id: "contracts", label: "Contracts" },
-  ];
+    { id: "invoices", label: "Invoices", hidden: !canViewInvoices },
+  ].filter((tab) => !tab.hidden);
 
   return (
     <>
@@ -1380,6 +1516,209 @@ export function ProjectTabs({
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === "invoices" && (
+          <div className="bg-white rounded-lg shadow p-6 space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Invoices</h2>
+              <p className="text-sm text-gray-500">
+                Track billing status and overdue payments for this project.
+              </p>
+            </div>
+
+            {invoicesState.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+                No invoices yet.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase text-gray-500 border-b">
+                      <th className="py-2">Number</th>
+                      <th className="py-2">Amount</th>
+                      <th className="py-2">Issue date</th>
+                      <th className="py-2">Due date</th>
+                      <th className="py-2">Status</th>
+                      <th className="py-2">Contract</th>
+                      {canManageInvoices && <th className="py-2 text-right">Action</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoicesState.map((invoice) => (
+                      <tr key={invoice.id} className="border-b last:border-b-0">
+                        <td className="py-3 font-medium text-gray-900">
+                          {invoice.number}
+                        </td>
+                        <td className="py-3">{formatCurrency(invoice.amount)}</td>
+                        <td className="py-3">{formatDate(invoice.issueDate)}</td>
+                        <td className="py-3">
+                          {invoice.dueDate ? formatDate(invoice.dueDate) : "—"}
+                        </td>
+                        <td className="py-3">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getInvoiceStatusBadge(
+                              invoice.status
+                            )}`}
+                          >
+                            {getInvoiceStatusLabel(invoice.status)}
+                          </span>
+                        </td>
+                        <td className="py-3 text-gray-600">
+                          {invoice.contractId
+                            ? contractLookup.get(invoice.contractId) || "—"
+                            : "—"}
+                        </td>
+                        {canManageInvoices && (
+                          <td className="py-3 text-right">
+                            {invoice.status !== "paid" && (
+                              <button
+                                onClick={() => handleMarkInvoicePaid(invoice.id)}
+                                className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                              >
+                                Mark paid
+                              </button>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {canManageInvoices ? (
+              <div className="rounded-lg border border-gray-200 p-4 bg-white">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium uppercase text-gray-500">
+                      Invoice number
+                    </label>
+                    <input
+                      value={invoiceForm.number}
+                      onChange={(event) =>
+                        setInvoiceForm({ ...invoiceForm, number: event.target.value })
+                      }
+                      className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                      placeholder="INV-2026-001"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase text-gray-500">
+                      Amount
+                    </label>
+                    <input
+                      value={invoiceForm.amount}
+                      onChange={(event) =>
+                        setInvoiceForm({ ...invoiceForm, amount: event.target.value })
+                      }
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase text-gray-500">
+                      Issue date
+                    </label>
+                    <input
+                      value={invoiceForm.issueDate}
+                      onChange={(event) =>
+                        setInvoiceForm({ ...invoiceForm, issueDate: event.target.value })
+                      }
+                      type="date"
+                      className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase text-gray-500">
+                      Due date
+                    </label>
+                    <input
+                      value={invoiceForm.dueDate}
+                      onChange={(event) =>
+                        setInvoiceForm({ ...invoiceForm, dueDate: event.target.value })
+                      }
+                      type="date"
+                      className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase text-gray-500">
+                      Currency
+                    </label>
+                    <input
+                      value={invoiceForm.currency}
+                      onChange={(event) =>
+                        setInvoiceForm({ ...invoiceForm, currency: event.target.value })
+                      }
+                      className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase text-gray-500">
+                      Contract
+                    </label>
+                    <select
+                      value={invoiceForm.contractId}
+                      onChange={(event) =>
+                        setInvoiceForm({ ...invoiceForm, contractId: event.target.value })
+                      }
+                      className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                    >
+                      <option value="">No contract</option>
+                      {contractsState.map((contract) => (
+                        <option key={contract.id} value={contract.id}>
+                          {contract.number}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-xs font-medium uppercase text-gray-500">
+                    Notes
+                  </label>
+                  <textarea
+                    value={invoiceForm.notes}
+                    onChange={(event) =>
+                      setInvoiceForm({ ...invoiceForm, notes: event.target.value })
+                    }
+                    className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                    rows={3}
+                  />
+                </div>
+
+                {invoiceError && (
+                  <div className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {invoiceError}
+                  </div>
+                )}
+                {invoiceSuccess && (
+                  <div className="mt-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                    {invoiceSuccess}
+                  </div>
+                )}
+
+                <div className="mt-4">
+                  <button
+                    onClick={handleCreateInvoice}
+                    className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    Create invoice
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+                You do not have access to manage invoices.
+              </div>
+            )}
           </div>
         )}
       </div>

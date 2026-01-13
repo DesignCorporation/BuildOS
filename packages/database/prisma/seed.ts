@@ -167,6 +167,11 @@ async function main() {
     { resource: "photos", action: "create", description: "Upload project photos" },
     { resource: "photos", action: "delete", description: "Delete project photos" },
 
+    // Invoices
+    { resource: "invoices", action: "view", description: "View invoices" },
+    { resource: "invoices", action: "create", description: "Create invoices" },
+    { resource: "invoices", action: "update", description: "Update invoices" },
+
     // Users (admin)
     { resource: "users", action: "view", description: "View users" },
     { resource: "users", action: "create", description: "Create users" },

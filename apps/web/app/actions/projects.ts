@@ -10,6 +10,7 @@ import {
   PhotoService,
   RoomService,
   ContractService,
+  InvoiceService,
 } from "@buildos/services";
 import { UserRepository, prisma } from "@buildos/database";
 import { revalidatePath } from "next/cache";
@@ -252,11 +253,47 @@ export async function getProjectByIdAction(id: string) {
       console.warn("Failed to load contracts for project:", contractError);
     }
 
+    // Load invoices for this project
+    let invoices: any[] = [];
+    try {
+      const invoiceService = new InvoiceService(context);
+      const invoicesResult = await invoiceService.getInvoicesByProjectId(id);
+      invoices = (invoicesResult.data || []).map((invoice: any) => ({
+        ...invoice,
+        amount: Number(invoice.amount),
+        issueDate: serializeDate(invoice.issueDate),
+        dueDate: serializeDate(invoice.dueDate),
+        createdAt: serializeDate(invoice.createdAt),
+        updatedAt: serializeDate(invoice.updatedAt),
+        deletedAt: serializeDate(invoice.deletedAt),
+      }));
+      invoices = sanitize(invoices);
+    } catch (invoiceError) {
+      console.warn("Failed to load invoices for project:", invoiceError);
+    }
+
     const canViewCost = await userRepo.hasPermission(
       context.userId,
       "estimates",
       "view_cost"
     );
+
+    const canViewInvoices = await userRepo.hasPermission(
+      context.userId,
+      "invoices",
+      "view"
+    );
+    const canCreateInvoices = await userRepo.hasPermission(
+      context.userId,
+      "invoices",
+      "create"
+    );
+    const canUpdateInvoices = await userRepo.hasPermission(
+      context.userId,
+      "invoices",
+      "update"
+    );
+    const canManageInvoices = canCreateInvoices || canUpdateInvoices;
 
     return {
       success: true,
@@ -267,7 +304,10 @@ export async function getProjectByIdAction(id: string) {
         photos,
         rooms,
         contracts,
+        invoices,
         canViewCost,
+        canViewInvoices,
+        canManageInvoices,
       },
     };
   } catch (error) {

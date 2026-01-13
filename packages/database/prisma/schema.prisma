@@ -437,8 +437,9 @@ model Invoice {
   id          String    @id @default(cuid())
   tenantId    String
   projectId   String?
+  contractId  String?
   number      String // Invoice number
-  status      String    @default("draft") // draft, sent, paid, cancelled
+  status      String    @default("issued") // issued, paid, overdue
   issueDate   DateTime
   dueDate     DateTime?
   amount      Decimal   @db.Decimal(12, 2)
@@ -450,6 +451,7 @@ model Invoice {
 
   // Relations
   project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  contract Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, number])
   @@index([tenantId])
@@ -477,6 +479,7 @@ model Contract {
   // Relations
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   milestones ContractMilestone[]
+  invoices   Invoice[]
 
   @@unique([tenantId, number])
   @@index([tenantId])

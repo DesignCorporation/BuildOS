@@ -27,7 +27,10 @@ export default async function ProjectPage({ params }: PageProps) {
     photos = [],
     rooms = [],
     contracts = [],
+    invoices = [],
     canViewCost,
+    canViewInvoices,
+    canManageInvoices,
   } = result.data;
   const totalEstimates = estimates.length;
   const totalAmount = estimates.reduce(
@@ -42,6 +45,9 @@ export default async function ProjectPage({ params }: PageProps) {
   const lastEstimateDate = estimates
     .map((estimate) => new Date(estimate.createdAt))
     .sort((a, b) => b.getTime() - a.getTime())[0];
+
+  const overdueInvoices = invoices.filter((invoice) => invoice.status === "overdue");
+  const hasOverdueInvoices = overdueInvoices.length > 0;
 
   const formatDate = (value?: Date | string | null) => {
     if (!value) {
@@ -183,6 +189,12 @@ export default async function ProjectPage({ params }: PageProps) {
         )}
       </div>
 
+      {canViewInvoices && hasOverdueInvoices && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Payments overdue: work is paused until invoices are settled.
+        </div>
+      )}
+
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow p-4">
@@ -212,7 +224,10 @@ export default async function ProjectPage({ params }: PageProps) {
         photos={photos}
         rooms={rooms}
         contracts={contracts}
+        invoices={invoices}
         canViewCost={canViewCost}
+        canViewInvoices={canViewInvoices}
+        canManageInvoices={canManageInvoices}
       />
     </div>
   );
