@@ -81,7 +81,7 @@ jobs:
   # Job 2: Build and Push Docker Image
   build:
     name: Build & Push Docker Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     needs: test
     permissions:
       contents: read
