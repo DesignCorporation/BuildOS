@@ -400,7 +400,29 @@ export function ProjectTabs({
       return;
     }
 
-    setContractsState((prev) => [result.data as Contract, ...prev]);
+    if (!result.data.id) {
+      setContractError("Failed to create contract");
+      return;
+    }
+
+    const normalizedContract: Contract = {
+      id: result.data.id,
+      number: result.data.number ?? contractForm.number.trim(),
+      status: result.data.status ?? "draft",
+      signedAt: result.data.signedAt ?? null,
+      notes: result.data.notes ?? null,
+      milestones: Array.isArray(result.data.milestones)
+        ? result.data.milestones.map((milestone: any) => ({
+            id: milestone.id,
+            name: milestone.name ?? "",
+            amount: Number(milestone.amount ?? 0),
+            dueDate: milestone.dueDate ?? null,
+            status: milestone.status ?? "pending",
+          }))
+        : [],
+    };
+
+    setContractsState((prev) => [normalizedContract, ...prev]);
     setContractSuccess("Contract created");
     setContractForm({
       number: "",
