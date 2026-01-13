@@ -12,6 +12,7 @@ import {
 } from "@/app/actions/projects";
 import { sendEstimateAction } from "@/app/actions/estimates";
 import { createPhotoAction } from "@/app/actions/photos";
+import { createContractAction } from "@/app/actions/contracts";
 import { createRoomAction, updateRoomAction } from "@/app/actions/rooms";
 import { useRouter } from "next/navigation";
 
@@ -85,6 +86,23 @@ interface Room {
   notes?: string | null;
 }
 
+interface ContractMilestone {
+  id: string;
+  name: string;
+  amount: number;
+  dueDate?: Date | string | null;
+  status: string;
+}
+
+interface Contract {
+  id: string;
+  number: string;
+  status: string;
+  signedAt?: Date | string | null;
+  notes?: string | null;
+  milestones: ContractMilestone[];
+}
+
 interface ProjectTabsProps {
   projectId: string;
   project: Project;
@@ -92,10 +110,11 @@ interface ProjectTabsProps {
   stages?: Stage[];
   photos?: Photo[];
   rooms?: Room[];
+  contracts?: Contract[];
   canViewCost?: boolean;
 }
 
-type TabName = "details" | "estimates" | "stages" | "photos";
+type TabName = "details" | "estimates" | "stages" | "photos" | "contracts";
 
 export function ProjectTabs({
   projectId,
@@ -104,6 +123,7 @@ export function ProjectTabs({
   stages = [],
   photos = [],
   rooms = [],
+  contracts = [],
   canViewCost = true,
 }: ProjectTabsProps) {
   const router = useRouter();
@@ -135,6 +155,19 @@ export function ProjectTabs({
   const [roomError, setRoomError] = useState<string | null>(null);
   const [roomSuccess, setRoomSuccess] = useState<string | null>(null);
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [contractsState, setContractsState] = useState<Contract[]>(contracts);
+  const [contractForm, setContractForm] = useState({
+    number: "",
+    signedAt: "",
+    notes: "",
+    milestones: [
+      { name: "Deposit", amount: "", dueDate: "" },
+      { name: "Midpoint", amount: "", dueDate: "" },
+      { name: "Final", amount: "", dueDate: "" },
+    ],
+  });
+  const [contractError, setContractError] = useState<string | null>(null);
+  const [contractSuccess, setContractSuccess] = useState<string | null>(null);
   const latestDraft = estimates
     .filter((estimate) => estimate.status === "draft")
     .sort((a, b) => b.version - a.version)[0];
@@ -301,6 +334,87 @@ export function ProjectTabs({
     router.refresh();
   };
 
+  const handleAddMilestone = () => {
+    setContractForm((prev) => ({
+      ...prev,
+      milestones: [...prev.milestones, { name: "", amount: "", dueDate: "" }],
+    }));
+  };
+
+  const handleUpdateMilestone = (
+    index: number,
+    field: "name" | "amount" | "dueDate",
+    value: string
+  ) => {
+    setContractForm((prev) => ({
+      ...prev,
+      milestones: prev.milestones.map((milestone, idx) =>
+        idx === index ? { ...milestone, [field]: value } : milestone
+      ),
+    }));
+  };
+
+  const handleRemoveMilestone = (index: number) => {
+    setContractForm((prev) => {
+      const next = prev.milestones.filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        milestones: next.length > 0 ? next : [{ name: "", amount: "", dueDate: "" }],
+      };
+    });
+  };
+
+  const handleCreateContract = async () => {
+    setContractError(null);
+    setContractSuccess(null);
+
+    if (!contractForm.number.trim()) {
+      setContractError("Contract number is required");
+      return;
+    }
+
+    const milestones = contractForm.milestones
+      .map((milestone) => ({
+        name: milestone.name.trim(),
+        amount: Number(milestone.amount),
+        dueDate: milestone.dueDate,
+      }))
+      .filter((milestone) => milestone.name && milestone.amount > 0);
+
+    if (milestones.length === 0) {
+      setContractError("Add at least one milestone with amount");
+      return;
+    }
+
+    const result = await createContractAction({
+      projectId,
+      number: contractForm.number.trim(),
+      signedAt: contractForm.signedAt || undefined,
+      status: "draft",
+      notes: contractForm.notes.trim() || undefined,
+      milestones,
+    });
+
+    if (!result.success || !result.data) {
+      setContractError(result.error || "Failed to create contract");
+      return;
+    }
+
+    setContractsState((prev) => [result.data as Contract, ...prev]);
+    setContractSuccess("Contract created");
+    setContractForm({
+      number: "",
+      signedAt: "",
+      notes: "",
+      milestones: [
+        { name: "Deposit", amount: "", dueDate: "" },
+        { name: "Midpoint", amount: "", dueDate: "" },
+        { name: "Final", amount: "", dueDate: "" },
+      ],
+    });
+    router.refresh();
+  };
+
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
       draft: "bg-gray-100 text-gray-800",
@@ -408,6 +522,7 @@ export function ProjectTabs({
     { id: "estimates", label: "Estimates" },
     { id: "stages", label: "Stages" },
     { id: "photos", label: "Photos" },
+    { id: "contracts", label: "Contracts" },
   ];
 
   return (
@@ -1063,6 +1178,186 @@ export function ProjectTabs({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === "contracts" && (
+          <div className="bg-white rounded-lg shadow p-6 space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Contracts</h2>
+              <p className="text-sm text-gray-500">
+                Track agreements and payment milestones for this project.
+              </p>
+            </div>
+
+            {contractsState.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+                No contracts yet. Create the first agreement below.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {contractsState.map((contract) => (
+                  <div
+                    key={contract.id}
+                    className="rounded-lg border border-gray-200 p-4 bg-gray-50"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">
+                          Contract {contract.number}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Status: {contract.status}
+                          {contract.signedAt ? ` · Signed ${formatDate(contract.signedAt)}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      {contract.milestones.map((milestone) => (
+                        <div
+                          key={milestone.id}
+                          className="rounded border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600"
+                        >
+                          <div className="font-semibold text-gray-800">
+                            {milestone.name}
+                          </div>
+                          <div>{formatCurrency(milestone.amount)}</div>
+                          <div>
+                            {milestone.dueDate ? formatDate(milestone.dueDate) : "No due date"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {contract.notes && (
+                      <p className="mt-3 text-sm text-gray-600">{contract.notes}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="rounded-lg border border-gray-200 p-4 bg-white">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-medium uppercase text-gray-500">
+                    Contract number
+                  </label>
+                  <input
+                    value={contractForm.number}
+                    onChange={(event) =>
+                      setContractForm({ ...contractForm, number: event.target.value })
+                    }
+                    className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                    placeholder="CN-2026-001"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium uppercase text-gray-500">
+                    Signed date
+                  </label>
+                  <input
+                    value={contractForm.signedAt}
+                    onChange={(event) =>
+                      setContractForm({ ...contractForm, signedAt: event.target.value })
+                    }
+                    type="date"
+                    className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-xs font-medium uppercase text-gray-500">
+                  Notes
+                </label>
+                <textarea
+                  value={contractForm.notes}
+                  onChange={(event) =>
+                    setContractForm({ ...contractForm, notes: event.target.value })
+                  }
+                  className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm"
+                  rows={3}
+                />
+              </div>
+
+              <div className="mt-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium uppercase text-gray-500">
+                    Milestones
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddMilestone}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                  >
+                    + Add milestone
+                  </button>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {contractForm.milestones.map((milestone, index) => (
+                    <div
+                      key={`milestone-${index}`}
+                      className="grid gap-2 md:grid-cols-[2fr_1fr_1fr_auto]"
+                    >
+                      <input
+                        value={milestone.name}
+                        onChange={(event) =>
+                          handleUpdateMilestone(index, "name", event.target.value)
+                        }
+                        className="rounded border border-gray-200 px-3 py-2 text-sm"
+                        placeholder="Deposit"
+                      />
+                      <input
+                        value={milestone.amount}
+                        onChange={(event) =>
+                          handleUpdateMilestone(index, "amount", event.target.value)
+                        }
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="rounded border border-gray-200 px-3 py-2 text-sm"
+                        placeholder="Amount"
+                      />
+                      <input
+                        value={milestone.dueDate}
+                        onChange={(event) =>
+                          handleUpdateMilestone(index, "dueDate", event.target.value)
+                        }
+                        type="date"
+                        className="rounded border border-gray-200 px-3 py-2 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMilestone(index)}
+                        className="rounded border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:text-gray-900"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {contractError && (
+                <div className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {contractError}
+                </div>
+              )}
+              {contractSuccess && (
+                <div className="mt-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                  {contractSuccess}
+                </div>
+              )}
+
+              <div className="mt-4">
+                <button
+                  onClick={handleCreateContract}
+                  className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Create contract
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

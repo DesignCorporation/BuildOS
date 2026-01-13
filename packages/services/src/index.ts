@@ -7,3 +7,4 @@ export * from "./stage.service";
 export * from "./photo.service";
 export * from "./work-catalog.service";
 export * from "./room.service";
+export * from "./contract.service";

@@ -26,6 +26,7 @@ export default async function ProjectPage({ params }: PageProps) {
     stages = [],
     photos = [],
     rooms = [],
+    contracts = [],
     canViewCost,
   } = result.data;
   const totalEstimates = estimates.length;
@@ -210,6 +211,7 @@ export default async function ProjectPage({ params }: PageProps) {
         stages={stages}
         photos={photos}
         rooms={rooms}
+        contracts={contracts}
         canViewCost={canViewCost}
       />
     </div>

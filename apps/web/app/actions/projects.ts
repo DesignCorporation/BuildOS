@@ -9,6 +9,7 @@ import {
   StageService,
   PhotoService,
   RoomService,
+  ContractService,
 } from "@buildos/services";
 import { UserRepository, prisma } from "@buildos/database";
 import { revalidatePath } from "next/cache";
@@ -113,6 +114,7 @@ export async function getProjectByIdAction(id: string) {
     const stageService = new StageService(context);
     const photoService = new PhotoService(context);
     const roomService = new RoomService(context);
+    const contractService = new ContractService(context);
     const userRepo = new UserRepository(prisma, context);
 
     const project = await projectService.getProjectById(id);
@@ -227,6 +229,29 @@ export async function getProjectByIdAction(id: string) {
       deletedAt: serializeDate(project.deletedAt),
     };
 
+    // Load contracts for this project
+    let contracts: any[] = [];
+    try {
+      const contractsResult = await contractService.getContractsByProjectId(id);
+      contracts = (contractsResult.data || []).map((contract: any) => ({
+        ...contract,
+        signedAt: serializeDate(contract.signedAt),
+        createdAt: serializeDate(contract.createdAt),
+        updatedAt: serializeDate(contract.updatedAt),
+        deletedAt: serializeDate(contract.deletedAt),
+        milestones: (contract.milestones || []).map((milestone: any) => ({
+          ...milestone,
+          amount: Number(milestone.amount),
+          dueDate: serializeDate(milestone.dueDate),
+          createdAt: serializeDate(milestone.createdAt),
+          updatedAt: serializeDate(milestone.updatedAt),
+        })),
+      }));
+      contracts = sanitize(contracts);
+    } catch (contractError) {
+      console.warn("Failed to load contracts for project:", contractError);
+    }
+
     const canViewCost = await userRepo.hasPermission(
       context.userId,
       "estimates",
@@ -241,6 +266,7 @@ export async function getProjectByIdAction(id: string) {
         stages,
         photos,
         rooms,
+        contracts,
         canViewCost,
       },
     };

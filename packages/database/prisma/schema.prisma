@@ -158,6 +158,8 @@ model Project {
   rooms     Room[]
   estimates Estimate[]
   photos    Photo[]
+  contracts Contract[]
+  invoices  Invoice[]
 
   @@index([tenantId])
   @@index([tenantId, deletedAt]) // For filtering out deleted
@@ -446,11 +448,61 @@ model Invoice {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime? // Soft delete (ADR-03)
 
+  // Relations
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
   @@unique([tenantId, number])
   @@index([tenantId])
   @@index([tenantId, deletedAt])
   @@index([status])
   @@map("invoices")
+}
+
+// ========================================================================
+// CONTRACTS (Sprint 2 - Contracts v1)
+// ========================================================================
+
+model Contract {
+  id            String    @id @default(cuid())
+  tenantId      String
+  projectId     String
+  number        String
+  signedAt      DateTime?
+  status        String    @default("draft") // draft, signed, terminated
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestones ContractMilestone[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, deletedAt])
+  @@map("contracts")
+}
+
+model ContractMilestone {
+  id         String   @id @default(cuid())
+  tenantId   String
+  contractId String
+  name       String
+  amount     Decimal  @db.Decimal(12, 2)
+  dueDate    DateTime?
+  status     String   @default("pending") // pending, paid
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([contractId])
+  @@map("contract_milestones")
 }
 
 // ============================================================================

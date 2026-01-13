@@ -172,6 +172,53 @@ export async function seedAnchorProjects(
     return estimate;
   }
 
+  async function ensureContract(
+    projectId: string,
+    contractData: {
+      number: string;
+      status?: string;
+      signedAt?: Date;
+      notes?: string;
+    },
+    milestones: Array<{
+      name: string;
+      amount: Decimal | string | number;
+      dueDate?: Date;
+    }>
+  ) {
+    const existing = await prisma.contract.findFirst({
+      where: {
+        tenantId,
+        number: contractData.number,
+      },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return prisma.contract.create({
+      data: {
+        tenantId,
+        projectId,
+        number: contractData.number,
+        status: contractData.status ?? "draft",
+        signedAt: contractData.signedAt ?? null,
+        notes: contractData.notes ?? null,
+        milestones: {
+          create: milestones.map((milestone, index) => ({
+            tenantId,
+            name: milestone.name,
+            amount: milestone.amount,
+            dueDate: milestone.dueDate ?? null,
+            status: "pending",
+            order: index,
+          })),
+        },
+      },
+    });
+  }
+
   async function createPhoto(input: {
     projectId: string;
     stageId?: string;
@@ -345,6 +392,33 @@ export async function seedAnchorProjects(
       capturedAt: new Date("2025-12-05"),
     });
   }
+
+  await ensureContract(
+    p1.id,
+    {
+      number: "CN-2026-001",
+      status: "signed",
+      signedAt: new Date("2025-12-01"),
+      notes: "Signed with Jan Investment Group for Villa Wilanów Heights.",
+    },
+    [
+      {
+        name: "Deposit",
+        amount: new Decimal("400000"),
+        dueDate: new Date("2025-12-05"),
+      },
+      {
+        name: "Midpoint",
+        amount: new Decimal("1200000"),
+        dueDate: new Date("2026-02-01"),
+      },
+      {
+        name: "Final",
+        amount: new Decimal("900000"),
+        dueDate: new Date("2026-04-15"),
+      },
+    ]
+  );
 
   // Project 1 Estimates (3 versions)
   await ensureEstimate(
